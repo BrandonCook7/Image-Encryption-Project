@@ -52,7 +52,8 @@ class AES():
         key_copy = key_array.copy()
         self.rotate_column_up(key_copy, 3)
         print(key_copy)
-        print(self.sub_from_s_box(key_copy[0][3]))
+        _loc = key_copy[2][3]
+        print("Key: " + _loc + " To S-Box: " + self.sub_from_s_box(_loc))
 
 
     
