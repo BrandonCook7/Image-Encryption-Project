@@ -26,7 +26,8 @@ s_box = (
     0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16,
 )
 
-rcon_lookup = (0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36)
+#rcon_lookup = (0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36)
+rcon_lookup = (0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36)
 
 
 class AES():
@@ -40,8 +41,12 @@ class AES():
 
     def sub_from_s_box(self, _hex):
         if _hex[1] == 'x':
-            x_axis = _hex[0]
-            y_axis = _hex[2]
+            if len(_hex) == 3:
+                x_axis = _hex[2]
+                y_axis = '0'
+            else:
+                x_axis = _hex[2]
+                y_axis = _hex[3]
         else:
             x_axis = _hex[0]
             y_axis = _hex[1]
@@ -50,15 +55,20 @@ class AES():
         y_coord = int(y_axis, 16)
         row = x_coord * 16
         #Don't use hex function since it will print 0x7 instead of 0x07
-        return (f"0x{(s_box[row + y_coord]):02x}")
+        #return (f"0x{(s_box[row + y_coord]):02x}")
+        return hex(s_box[row+y_coord])
 
     def create_rcon_table(self):
         #Create 4x11 array in numpy
         #Create 4x11 RCOn table in numpy
-        rcon_table = np.zeros(shape=(4, 11), dtype=object)
+        rcon_table = np.empty(shape=(4, 10), dtype=object)
         #rcon_table = np.zeros((4, 11), dtype=str)
-        for i in range(11):
-            rcon_table[0][i] = f"0x{(rcon_lookup[i]):02x}"[2:]#rcon_lookup[i]
+        for i in range(10):
+            for j in range(4):
+                if j == 0:
+                    rcon_table[0][i] = hex(rcon_lookup[i])#f"0x{(rcon_lookup[i]):02x}"
+                else:
+                    rcon_table[j][i] = hex(0)
         return rcon_table
 
     #The key scheduler happens here
@@ -78,20 +88,38 @@ class AES():
         rcon_table = self.create_rcon_table()
 
         for round in range(self.rounds):
+            round_key_x = np.empty(shape=(4,4), dtype='<U4', order='C')
             for col in range(self.n):
                 if col == 0:
                     #Creates rot word as 1d array
-                    column_array = self.rotate_column_up(key_expanded[round], 3)
+                    rot_word = self.rotate_column_up(key_expanded[round], 3)
                     #Substitute Bytes
-                    for index in np.ndindex(column_array.shape):
-                        column_array[index] = self.sub_from_s_box(column_array[index])[2:]#Trim to ignore 0x
-                    val1 = key_expanded[round][0][col] ^ column_array[0] ^ rcon_table[0][0]
-                    val2 = key_expanded[round][1][col] ^ column_array[1] ^ rcon_table[0][0]
-                    val3 = key_expanded[round][2][col] ^ column_array[2] ^ rcon_table[0][0]
-                    val4 = key_expanded[round][3][col] ^ column_array[3] ^ rcon_table[0][0]
-                    print(val1)
-                    break
-                break
+                    for index in np.ndindex(rot_word.shape):
+                        rot_word[index] = self.sub_from_s_box(rot_word[index])#[2:]#Trim to ignore 0x
+                    #Convert's hex string values to integers for XOR operation
+                    val1_int = int(key_expanded[round][0][col],16) ^ int(rot_word[0],16) ^ int(rcon_table[0][round],16)
+                    val2_int = int(key_expanded[round][1][col],16) ^ int(rot_word[1],16) ^ int(rcon_table[1][round],16)
+                    val3_int = int(key_expanded[round][2][col],16) ^ int(rot_word[2],16) ^ int(rcon_table[2][round],16)
+                    val4_int = int(key_expanded[round][3][col],16) ^ int(rot_word[3],16) ^ int(rcon_table[3][round],16)
+                    #After XOR operation stores keys back in hex values
+                    round_key_x[col][0] = hex(val1_int)
+                    round_key_x[col][1] = hex(val2_int)
+                    round_key_x[col][2] = hex(val3_int)
+                    round_key_x[col][3] = hex(val4_int)
+                else:
+                    val1_int = int(key_expanded[round][0][col],16) ^ int(round_key_x[col-1][0],16)
+                    val2_int = int(key_expanded[round][1][col],16) ^ int(round_key_x[col-1][1],16)
+                    val3_int = int(key_expanded[round][2][col],16) ^ int(round_key_x[col-1][2],16)
+                    val4_int = int(key_expanded[round][3][col],16) ^ int(round_key_x[col-1][3],16)
+
+                    round_key_x[col][0] = hex(val1_int)
+                    round_key_x[col][1] = hex(val2_int)
+                    round_key_x[col][2] = hex(val3_int)
+                    round_key_x[col][3] = hex(val4_int)
+            #Add new round key to list
+            key_expanded.append(round_key_x)
+            print(round_key_x)
+            
                     
 
 
@@ -122,7 +150,9 @@ class AES():
         return
     def convert_key(self):
         #Example passphrase "password12345678"
-        hex_list = [format(ord(c), "x") for c in list(self.key_phrase) if True]
+        #hex_list = [format(ord(c), "x") for c in list(self.key_phrase) if True]
+
+        hex_list = [hex(ord(c)) for c in list(self.key_phrase) if True]
         if len(self.key_phrase) * 8 < self.block_size:
             print(len(self.key_phrase))
             self.pad_hex(hex_list)
