@@ -2,7 +2,7 @@ from aes import *
 
 def main():
     print("Hello World!")
-    aes = AES("password12345678", "The brita is overhyped")
+    aes = AES("password12345678", "The brita is ove")
     #aes = AES("pa")
     #aes = AES("A quick brown fox jumps over dog")
     #aes = AES("A quick brown fox jumps over dogs")

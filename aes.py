@@ -135,16 +135,27 @@ class AES():
         # print(column_array)
 
     def sub_bytes(self, sub_array: np.ndarray):
-        for row in sub_array:
-            for x in row:
-                x = self.sub_from_s_box(x)
-
+        for pos, x in np.ndenumerate(sub_array):
+            sub_array[pos[0]][pos[1]] = self.sub_from_s_box(x)
+    def shift_rows(self, shift_array: np.ndarray):
+        shift_array[1] = np.roll(shift_array[1], -1)
+        shift_array[2] = np.roll(shift_array[2], -2)
+        shift_array[3] = np.roll(shift_array[3], -3)
     def encrypt_aes(self):
         key = self.convert_key()
         round_keys = self.create_round_keys(key)
 
-        message_block = self.convert_message()
-        print(message_block)
+        message_blocks = self.convert_message()
+        #print(message_blocks)
+        for block in message_blocks:
+            print(block)
+            self.sub_bytes(block)
+            print(block)
+            self.shift_rows(block)
+            print("SHIFT ROWS \n")
+            print(block)
+            print("NEW BLOCK \n")
+
         return
     #Similar to convert key but is not limited by block size
     def convert_message(self):
