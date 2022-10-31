@@ -31,10 +31,11 @@ rcon_lookup = (0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36)
 
 
 class AES():
-    def __init__(self, key_phrase):
+    def __init__(self, key_phrase, message):
         #Todo: Add a way to pad the key
         #Key must be exactly 128 bits or exactly 16 chars currently
         self.key_phrase = key_phrase
+        self.message = message
         self.block_size = 128
         self.rounds = 10
         self.n = 4 #4 for 128bits, 6 for 192bits, 8 for 256bits
@@ -72,7 +73,7 @@ class AES():
         return rcon_table
 
     #The key scheduler happens here
-    def key_expansion(self, key_array: np.ndarray):
+    def create_round_keys(self, key_array: np.ndarray):
         #This array will holds the cipher keys and all round keys
 
         #Notes: Using default Python list as nesting a 2d array into a 1d numpy array, because it merges the columns
@@ -119,12 +120,8 @@ class AES():
             #Add new round key to list
             key_expanded.append(round_key_x)
             print(round_key_x)
-            
-                    
-
-
-
-
+        print(len(key_expanded))
+        return key_expanded
     
     #Rotate a specific column up one from a 4x4 ndarray, uses for the RotWord
     def rotate_column_up(self, key_array: np.ndarray, column):
@@ -137,17 +134,46 @@ class AES():
         # key_array[3][column] = temp
         # print(column_array)
 
-
+    def sub_bytes(self, sub_array: np.ndarray):
+        for row in sub_array:
+            for x in row:
+                x = self.sub_from_s_box(x)
 
     def encrypt_aes(self):
-        #s = pd.Series([1,2])
-        # hex_list = [format(ord(c), "x") for c in list(self.key_phrase) if True]
-        # print("BEFORE PADDING: \n", hex_list)
-        # self.pad_hex(hex_list)
-        # print("AFTER PADDING: \n", hex_list)
-        # self.unpad_hex(hex_list)
-        # print("REMOVED PADDING: \n", hex_list)
+        key = self.convert_key()
+        round_keys = self.create_round_keys(key)
+
+        message_block = self.convert_message()
+        print(message_block)
         return
+    #Similar to convert key but is not limited by block size
+    def convert_message(self):
+        message_blocks = []#np.empty()
+        hex_list = [hex(ord(c)) for c in list(self.message) if True]
+        if len(self.message) * 8 < self.block_size:
+            self.pad_hex(hex_list)
+            message_blocks.append(np.array(hex_list).reshape(4,4).swapaxes(0,1))
+        elif len(self.message) * 8 >= self.block_size:
+            #Pads the message if it is not in 128 bit multiples
+            if (len(self.message) * 8) % self.block_size == 0:
+                print("FITS PERFECTLY NO PADDING")
+                blocks_total = int((len(self.message) * 8) / self.block_size)
+                for i in range(blocks_total):
+                    block = hex_list[i*16:(i+1)*16]
+                    message_blocks.append(np.array(block).reshape(4,4).swapaxes(0,1))
+            else:
+                filled_blocks_total = math.floor((len(self.message) * 8) / self.block_size)
+                #Filled all full blocks
+                for i in range(filled_blocks_total):
+                    block = hex_list[i*16:(i+1)*16]
+                    message_blocks.append(np.array(block).reshape(4,4).swapaxes(0,1))
+                tail_block = hex_list[(i+1)*16:]
+                self.pad_hex(tail_block)
+                message_blocks.append(np.array(tail_block).reshape(4,4).swapaxes(0,1))
+                print("MUST PAD last block")
+        
+        return message_blocks
+
     def convert_key(self):
         #Example passphrase "password12345678"
         #hex_list = [format(ord(c), "x") for c in list(self.key_phrase) if True]
@@ -160,8 +186,7 @@ class AES():
             raise ValueError("Key too large for block size")
 
         key_array = np.array(hex_list).reshape(4,4).swapaxes(0,1)
-        #print(key_array)
-        self.key_expansion(key_array)
+        return key_array
     #Uses PKCS#7 Padding, modifies hex_list by reference
     def pad_hex(self, hex_list: list):
         #Once hex value here is 8 bits/1 byte
