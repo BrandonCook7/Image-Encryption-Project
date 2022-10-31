@@ -1,8 +1,10 @@
+from re import I
 import pandas as pd
 import numpy as np
 import math
 
 from pyparsing import col
+from sqlalchemy import column
 
 #https://en.wikipedia.org/wiki/Rijndael_S-box
 s_box = (
@@ -24,6 +26,8 @@ s_box = (
     0x8C, 0xA1, 0x89, 0x0D, 0xBF, 0xE6, 0x42, 0x68, 0x41, 0x99, 0x2D, 0x0F, 0xB0, 0x54, 0xBB, 0x16,
 )
 
+rcon_lookup = (0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36)
+
 
 class AES():
     def __init__(self, key_phrase):
@@ -32,6 +36,7 @@ class AES():
         self.key_phrase = key_phrase
         self.block_size = 128
         self.rounds = 10
+        self.n = 4 #4 for 128bits, 6 for 192bits, 8 for 256bits
 
     def sub_from_s_box(self, _hex):
         if _hex[1] == 'x':
@@ -43,27 +48,67 @@ class AES():
         #Converts hexadecimal values to integers
         x_coord = int(x_axis, 16)
         y_coord = int(y_axis, 16)
-        #print(hex(s_box[1]))
         row = x_coord * 16
-        return hex(s_box[row + y_coord])
+        #Don't use hex function since it will print 0x7 instead of 0x07
+        return (f"0x{(s_box[row + y_coord]):02x}")
+
+    def create_rcon_table(self):
+        #Create 4x11 array in numpy
+        #Create 4x11 RCOn table in numpy
+        rcon_table = np.zeros(shape=(4, 11), dtype=object)
+        #rcon_table = np.zeros((4, 11), dtype=str)
+        for i in range(11):
+            rcon_table[0][i] = f"0x{(rcon_lookup[i]):02x}"[2:]#rcon_lookup[i]
+        return rcon_table
 
     #The key scheduler happens here
     def key_expansion(self, key_array: np.ndarray):
-        key_copy = key_array.copy()
-        self.rotate_column_up(key_copy, 3)
-        print(key_copy)
-        _loc = key_copy[2][3]
-        print("Key: " + _loc + " To S-Box: " + self.sub_from_s_box(_loc))
+        #This array will holds the cipher keys and all round keys
+
+        #Notes: Using default Python list as nesting a 2d array into a 1d numpy array, because it merges the columns
+        key_expanded = [key_array] #np.array(key_array)
+        #Creates rot word as 1d array
+        # column_array = self.rotate_column_up(key_array, 3)
+        # print(column_array)
+
+        #Substitute Bytes
+        # for index in np.ndindex(column_array.shape):
+        #     column_array[index] = self.sub_from_s_box(column_array[index])[2:]#Trim to ignore 0x
+        #Create round constants table
+        rcon_table = self.create_rcon_table()
+
+        for round in range(self.rounds):
+            for col in range(self.n):
+                if col == 0:
+                    #Creates rot word as 1d array
+                    column_array = self.rotate_column_up(key_expanded[round], 3)
+                    #Substitute Bytes
+                    for index in np.ndindex(column_array.shape):
+                        column_array[index] = self.sub_from_s_box(column_array[index])[2:]#Trim to ignore 0x
+                    val1 = key_expanded[round][0][col] ^ column_array[0] ^ rcon_table[0][0]
+                    val2 = key_expanded[round][1][col] ^ column_array[1] ^ rcon_table[0][0]
+                    val3 = key_expanded[round][2][col] ^ column_array[2] ^ rcon_table[0][0]
+                    val4 = key_expanded[round][3][col] ^ column_array[3] ^ rcon_table[0][0]
+                    print(val1)
+                    break
+                break
+                    
+
+
 
 
     
     #Rotate a specific column up one from a 4x4 ndarray, uses for the RotWord
     def rotate_column_up(self, key_array: np.ndarray, column):
-        temp = key_array[0][column]
-        key_array[0][column] = key_array[1][column]
-        key_array[1][column] = key_array[2][column]
-        key_array[2][column] = key_array[3][column]
-        key_array[3][column] = temp
+        column_array = np.array([key_array[1][column], key_array[2][column], key_array[3][column], key_array[0][column]])
+        return column_array
+        # temp = key_array[0][column]
+        # key_array[0][column] = key_array[1][column]
+        # key_array[1][column] = key_array[2][column]
+        # key_array[2][column] = key_array[3][column]
+        # key_array[3][column] = temp
+        # print(column_array)
+
 
 
     def encrypt_aes(self):
