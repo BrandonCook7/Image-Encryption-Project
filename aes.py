@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 import math
 
+import utils
+
 from pyparsing import col
 from sqlalchemy import column
 
@@ -29,10 +31,14 @@ s_box = (
 #rcon_lookup = (0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36)
 rcon_lookup = (0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36)
 
+#https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
+mix_columns_matrix = np.array([[0x02, 0x03, 0x01, 0x01],
+                              [0x01, 0x02, 0x03, 0x01],
+                              [0x01, 0x01, 0x02, 0x03],
+                              [0x03, 0x01, 0x01, 0x02]])
 
 class AES():
     def __init__(self, key_phrase, message):
-        #Todo: Add a way to pad the key
         #Key must be exactly 128 bits or exactly 16 chars currently
         self.key_phrase = key_phrase
         self.message = message
@@ -119,8 +125,8 @@ class AES():
                     round_key_x[col][3] = hex(val4_int)
             #Add new round key to list
             key_expanded.append(round_key_x)
-            print(round_key_x)
-        print(len(key_expanded))
+            #print(round_key_x)
+        #print(len(key_expanded))
         return key_expanded
     
     #Rotate a specific column up one from a 4x4 ndarray, uses for the RotWord
@@ -134,28 +140,78 @@ class AES():
         # key_array[3][column] = temp
         # print(column_array)
 
+    def mix_columns(self, mix_array: np.ndarray):
+        #(𝚍𝟺×𝟶𝟸)+(𝚋𝚏×𝟶𝟹)+(𝟻𝚍×𝟶𝟷)+(𝟹𝟶×𝟶𝟷)
+        for i in range(self.n):
+            mix_array[i] = self.mix_column(mix_array[i])
+        #mixed_column = self.mix_column(["0xd4", "0xbf", "0x5d", "0x30"])
+        return
+
+    def mix_column(self, column):
+        mixed_column = np.empty(shape=4, dtype='<U4')
+        #loop through matrix
+        for row in range(4):
+            temp_store = []
+            for col in range(4):
+                if mix_columns_matrix[row][col] == 1:
+                    mul_val = int(column[col],16)
+                elif mix_columns_matrix[row][col] == 2:
+                    mul_val = utils.multiply_by_2(int(column[col],16))
+                elif mix_columns_matrix[row][col] == 3:
+                    mul_val = utils.multiply_by_3(int(column[col],16))
+                else:
+                    raise RuntimeError("Could not find correct matrix value")
+                temp_store.append(mul_val)
+            #After loop XOR all values together
+            total = temp_store[0] ^ temp_store[1] ^ temp_store[2] ^ temp_store[3]
+            mixed_column[row] = (hex(total))
+        return mixed_column
+
     def sub_bytes(self, sub_array: np.ndarray):
         for pos, x in np.ndenumerate(sub_array):
             sub_array[pos[0]][pos[1]] = self.sub_from_s_box(x)
+    #This function supports all AES bit configurations
     def shift_rows(self, shift_array: np.ndarray):
         shift_array[1] = np.roll(shift_array[1], -1)
         shift_array[2] = np.roll(shift_array[2], -2)
         shift_array[3] = np.roll(shift_array[3], -3)
+
+    def add_round_key(self, array, round_key):
+        return_array = np.empty(shape=(4,4), dtype='<U4')
+        for i in range(self.n):
+            for j in range(self.n):
+                return_array[i][j] = hex(int(array[i][j],16) ^ int(round_key[i][j], 16))
+        return return_array
+            
     def encrypt_aes(self):
         key = self.convert_key()
         round_keys = self.create_round_keys(key)
-
+        if len(round_keys) != self.rounds + 1:
+            return ValueError("Wrong amount of round keys")
         message_blocks = self.convert_message()
-        #print(message_blocks)
         for block in message_blocks:
-            print(block)
+            #First round
+            self.add_round_key(block, round_keys[0])
+            #Rounds 2-10
+            for round in range(self.rounds - 1):
+                # print(block)
+                self.sub_bytes(block)
+                # print(block)
+                self.shift_rows(block)
+                # print("SHIFT ROWS \n")
+                # print(block)
+                # print("NEW BLOCK \n")
+                self.mix_columns(block)
+                # print("MIX COLUMNS \n")
+                # print(block)
+                self.add_round_key(block, round_keys[round+1])
+                # print("ADD ROUND KEY \n")
+                # print(block)
+            #Round 11
             self.sub_bytes(block)
-            print(block)
             self.shift_rows(block)
-            print("SHIFT ROWS \n")
-            print(block)
-            print("NEW BLOCK \n")
-
+            self.add_round_key(block, round_keys[10])
+        print(message_blocks)
         return
     #Similar to convert key but is not limited by block size
     def convert_message(self):
@@ -191,7 +247,7 @@ class AES():
 
         hex_list = [hex(ord(c)) for c in list(self.key_phrase) if True]
         if len(self.key_phrase) * 8 < self.block_size:
-            print(len(self.key_phrase))
+            #print(len(self.key_phrase))
             self.pad_hex(hex_list)
         elif len(self.key_phrase) * 8 > self.block_size:
             raise ValueError("Key too large for block size")
@@ -213,9 +269,9 @@ class AES():
 
         else:
             bits_left = self.block_size - len(hex_list) * 8#128 - 96
-        print(blocks)
+        #print(blocks)
         bytes_left: int = int(bits_left / 8)
-        print(bytes_left)
+        #print(bytes_left)
         #For the PKCS#7 Padding you add the bytes left as a hex value to all the empty spaces
         hex_to_append = hex(bytes_left)
         for i in range(bytes_left):
