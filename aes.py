@@ -156,9 +156,14 @@ class AES():
     def mix_columns(self, mix_array: np.ndarray):
         #(𝚍𝟺×𝟶𝟸)+(𝚋𝚏×𝟶𝟹)+(𝟻𝚍×𝟶𝟷)+(𝟹𝟶×𝟶𝟷)
         for i in range(4):
-            mix_array[i] = self.mix_column(mix_array[i])
-        #mixed_column = self.mix_column(["0xd4", "0xbf", "0x5d", "0x30"])
-        return
+            input_array = np.array([mix_array[0][i], mix_array[1][i], mix_array[2][i], mix_array[3][i]])
+            output = self.mix_column(input_array)
+            mix_array[0][i] = output[0]
+            mix_array[1][i] = output[1]
+            mix_array[2][i] = output[2]
+            mix_array[3][i] = output[3]
+        
+
 
     def mix_column(self, column):
         mixed_column = np.empty(shape=4, dtype='<U4')
@@ -205,28 +210,28 @@ class AES():
         message_blocks = self.convert_message()
         print("ORIGINAL BLOCKS")
         print(message_blocks)
-        for block in message_blocks:
+        for b_index in range(len(message_blocks)):
             #First round
-            self.add_round_key(block, round_keys[0])
+            message_blocks[b_index] = self.add_round_key(message_blocks[b_index], round_keys[0])
             #Rounds 2-10
             for round in range(self.rounds - 1):
                 # print(block)
-                self.sub_bytes(block)
+                self.sub_bytes(message_blocks[b_index])
                 # print(block)
-                self.shift_rows(block)
+                self.shift_rows(message_blocks[b_index])
                 # print("SHIFT ROWS \n")
                 # print(block)
                 # print("NEW BLOCK \n")
-                self.mix_columns(block)
+                self.mix_columns(message_blocks[b_index])
                 # print("MIX COLUMNS \n")
                 # print(block)
-                self.add_round_key(block, round_keys[round+1])
+                message_blocks[b_index] = self.add_round_key(message_blocks[b_index], round_keys[round+1])
                 # print("ADD ROUND KEY \n")
                 # print(block)
             #Round 11
-            self.sub_bytes(block)
-            self.shift_rows(block)
-            self.add_round_key(block, round_keys[10])
+            self.sub_bytes(message_blocks[b_index])
+            self.shift_rows(message_blocks[b_index])
+            message_blocks[b_index] = self.add_round_key(message_blocks[b_index], round_keys[10])
         print("ENCRYPTED BLOCKS")
         print(message_blocks)
         self.convert_blocks_to_output(message_blocks)
