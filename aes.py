@@ -235,8 +235,36 @@ class AES():
         print("ENCRYPTED BLOCKS")
         print(message_blocks)
         self.convert_blocks_to_output(message_blocks)
-    # def decyrpt_aes(self):
-    #     key = self.convert_key()
+        self.convert_input_to_blocks()
+
+    def decyrpt_aes(self):
+        key = self.convert_key()
+        round_keys = self.create_round_keys(key)
+        if len(round_keys) != self.rounds + 1:
+            return ValueError("Wrong amount of round keys")
+
+    def convert_input_to_blocks(self):
+        encrypted_blocks = []
+        file = open("input.txt", "r")
+        lines = file.readlines()
+        file.close()
+        blocks_string = lines[0]
+        print(lines)
+        blocks_total = len(blocks_string) / 32
+        blocks_total = int(blocks_total)
+        
+        k = 0 #Used for slicing the block string
+        for block in range(blocks_total):
+            block_state = np.empty(shape=(4, 4), dtype='<U4')
+
+            for i in range(4):
+                for j in range(4):
+                    block_state[j][i] = hex(int(blocks_string[k:k+2],16))
+                    k += 2
+            encrypted_blocks.append(block_state)    
+        print(encrypted_blocks)
+        #print(hex(int(blocks_string[0:2], 16)))
+
     def convert_blocks_to_output(self, message_blocks: list):
         file = open("output.txt", "w")
         for block in message_blocks:
