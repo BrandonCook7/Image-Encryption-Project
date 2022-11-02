@@ -29,7 +29,7 @@ s_box = (
 )
 
 #rcon_lookup = (0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36)
-rcon_lookup = (0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36)
+rcon_lookup = (0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36)
 
 #https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
 mix_columns_matrix = np.array([[0x02, 0x03, 0x01, 0x01],
@@ -49,8 +49,8 @@ class AES():
     def sub_from_s_box(self, _hex):
         if _hex[1] == 'x':
             if len(_hex) == 3:
-                x_axis = _hex[2]
-                y_axis = '0'
+                x_axis = '0'
+                y_axis = _hex[2]
             else:
                 x_axis = _hex[2]
                 y_axis = _hex[3]
@@ -96,7 +96,7 @@ class AES():
 
         for round in range(self.rounds):
             round_key_x = np.empty(shape=(4,4), dtype='<U4', order='C')
-            for col in range(self.n):
+            for col in range(4):
                 if col == 0:
                     #Creates rot word as 1d array
                     rot_word = self.rotate_column_up(key_expanded[round], 3)
@@ -104,25 +104,38 @@ class AES():
                     for index in np.ndindex(rot_word.shape):
                         rot_word[index] = self.sub_from_s_box(rot_word[index])#[2:]#Trim to ignore 0x
                     #Convert's hex string values to integers for XOR operation
+                    print(int(rcon_table[0][round],16))
+                    print(rcon_table[0][round])
                     val1_int = int(key_expanded[round][0][col],16) ^ int(rot_word[0],16) ^ int(rcon_table[0][round],16)
                     val2_int = int(key_expanded[round][1][col],16) ^ int(rot_word[1],16) ^ int(rcon_table[1][round],16)
                     val3_int = int(key_expanded[round][2][col],16) ^ int(rot_word[2],16) ^ int(rcon_table[2][round],16)
                     val4_int = int(key_expanded[round][3][col],16) ^ int(rot_word[3],16) ^ int(rcon_table[3][round],16)
                     #After XOR operation stores keys back in hex values
-                    round_key_x[col][0] = hex(val1_int)
-                    round_key_x[col][1] = hex(val2_int)
-                    round_key_x[col][2] = hex(val3_int)
-                    round_key_x[col][3] = hex(val4_int)
+                    # round_key_x[col][0] = hex(val1_int)
+                    # round_key_x[col][1] = hex(val2_int)
+                    # round_key_x[col][2] = hex(val3_int)
+                    # round_key_x[col][3] = hex(val4_int)
+                    round_key_x[0][col] = hex(val1_int)
+                    round_key_x[1][col] = hex(val2_int)
+                    round_key_x[2][col] = hex(val3_int)
+                    round_key_x[3][col] = hex(val4_int)
                 else:
-                    val1_int = int(key_expanded[round][0][col],16) ^ int(round_key_x[col-1][0],16)
-                    val2_int = int(key_expanded[round][1][col],16) ^ int(round_key_x[col-1][1],16)
-                    val3_int = int(key_expanded[round][2][col],16) ^ int(round_key_x[col-1][2],16)
-                    val4_int = int(key_expanded[round][3][col],16) ^ int(round_key_x[col-1][3],16)
-
-                    round_key_x[col][0] = hex(val1_int)
-                    round_key_x[col][1] = hex(val2_int)
-                    round_key_x[col][2] = hex(val3_int)
-                    round_key_x[col][3] = hex(val4_int)
+                    # val1_int = int(key_expanded[round][0][col],16) ^ int(round_key_x[col-1][0],16)
+                    # val2_int = int(key_expanded[round][1][col],16) ^ int(round_key_x[col-1][1],16)
+                    # val3_int = int(key_expanded[round][2][col],16) ^ int(round_key_x[col-1][2],16)
+                    # val4_int = int(key_expanded[round][3][col],16) ^ int(round_key_x[col-1][3],16)
+                    val1_int = int(key_expanded[round][0][col],16) ^ int(round_key_x[0][col-1],16)
+                    val2_int = int(key_expanded[round][1][col],16) ^ int(round_key_x[1][col-1],16)
+                    val3_int = int(key_expanded[round][2][col],16) ^ int(round_key_x[2][col-1],16)
+                    val4_int = int(key_expanded[round][3][col],16) ^ int(round_key_x[3][col-1],16)
+                    # round_key_x[col][0] = hex(val1_int)
+                    # round_key_x[col][1] = hex(val2_int)
+                    # round_key_x[col][2] = hex(val3_int)
+                    # round_key_x[col][3] = hex(val4_int)
+                    round_key_x[0][col] = hex(val1_int)
+                    round_key_x[1][col] = hex(val2_int)
+                    round_key_x[2][col] = hex(val3_int)
+                    round_key_x[3][col] = hex(val4_int)
             #Add new round key to list
             key_expanded.append(round_key_x)
             #print(round_key_x)
@@ -142,7 +155,7 @@ class AES():
 
     def mix_columns(self, mix_array: np.ndarray):
         #(𝚍𝟺×𝟶𝟸)+(𝚋𝚏×𝟶𝟹)+(𝟻𝚍×𝟶𝟷)+(𝟹𝟶×𝟶𝟷)
-        for i in range(self.n):
+        for i in range(4):
             mix_array[i] = self.mix_column(mix_array[i])
         #mixed_column = self.mix_column(["0xd4", "0xbf", "0x5d", "0x30"])
         return
@@ -178,17 +191,20 @@ class AES():
 
     def add_round_key(self, array, round_key):
         return_array = np.empty(shape=(4,4), dtype='<U4')
-        for i in range(self.n):
-            for j in range(self.n):
+        for i in range(4):
+            for j in range(4):
                 return_array[i][j] = hex(int(array[i][j],16) ^ int(round_key[i][j], 16))
         return return_array
-            
+    
     def encrypt_aes(self):
+        #TODO Implement CBC option
         key = self.convert_key()
         round_keys = self.create_round_keys(key)
         if len(round_keys) != self.rounds + 1:
             return ValueError("Wrong amount of round keys")
         message_blocks = self.convert_message()
+        print("ORIGINAL BLOCKS")
+        print(message_blocks)
         for block in message_blocks:
             #First round
             self.add_round_key(block, round_keys[0])
@@ -211,8 +227,21 @@ class AES():
             self.sub_bytes(block)
             self.shift_rows(block)
             self.add_round_key(block, round_keys[10])
+        print("ENCRYPTED BLOCKS")
         print(message_blocks)
-        return
+        self.convert_blocks_to_output(message_blocks)
+    # def decyrpt_aes(self):
+    #     key = self.convert_key()
+    def convert_blocks_to_output(self, message_blocks: list):
+        file = open("output.txt", "w")
+        for block in message_blocks:
+            temp_str = ""
+            for i in range(4):
+                for j in range(4):
+                    temp_str += (f"0x{(int(block[j][i],16)):02x}")[2:]#block[j][i]#str(int(block[j][i],16))
+            file.write(temp_str)
+        file.close()
+
     #Similar to convert key but is not limited by block size
     def convert_message(self):
         message_blocks = []#np.empty()
