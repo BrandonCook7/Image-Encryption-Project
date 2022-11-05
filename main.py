@@ -11,6 +11,7 @@ def main():
     #aes = AES("A quick brown fox jumps over dogs")
     aes = AES("brandonmadethis", "A quick brown fox jumps over dog, testing")
     aes.encrypt_aes()
+    aes.decyrpt_aes()
     #aes.convert_key()
     #aes.pad_hex()
 
