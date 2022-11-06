@@ -279,6 +279,8 @@ class AES():
             encrypted_blocks[i] = self.add_rm_round_key(encrypted_blocks[i], round_keys[0])
                 
         print(encrypted_blocks)
+        self.convert_blocks_to_output(encrypted_blocks)
+        self.convert_back_to_string("output.txt")
 
     def convert_input_to_blocks(self, filename):
         encrypted_blocks = []
@@ -312,6 +314,22 @@ class AES():
                     temp_str += (f"0x{(int(block[j][i],16)):02x}")[2:]#block[j][i]#str(int(block[j][i],16))
             file.write(temp_str)
         file.close()
+    
+    def convert_back_to_string(self, filename):
+        file = open(filename, "r")
+        lines = file.readlines()
+        file.close()
+        line = lines[0]
+        print(line)
+        hex_list = self.unpad_hex(line)
+        print(line)
+        message = ""
+        for i in range(1, len(hex_list), 2):
+            hex_string = "0x" + hex_list[i-1] + hex_list[i]
+            message += chr(int(hex_string, 16))
+        print(message)
+            
+
 
     #Similar to convert key but is not limited by block size
     def convert_message(self):
@@ -376,20 +394,25 @@ class AES():
         hex_to_append = hex(bytes_left)
         for i in range(bytes_left):
             hex_list.append(hex_to_append)
-    #Undoes PKCS#7 padding, modifies hex_list by reference
+    #Undoes PKCS#7 padding
     def unpad_hex(self, hex_list: list):
-        hex_len = hex_list[len(hex_list)-1]
+        hex_len: list = hex_list[len(hex_list)-1]
         padding_len = int(hex_len, 16)
-        rev_list = hex_list.copy()
-        rev_list.reverse()
+        rev_list = hex_list[::-1]
+        #rev_list.reverse()
         #Check to see if hex list is padded
         is_padded = True
-        for i in range(1, padding_len):
-            if rev_list[i] != rev_list[i-1]:
+        print(rev_list)
+        for i in range(3, padding_len*2, 2):
+            # print(rev_list[i-1], rev_list[i])
+            # print(rev_list[i-3], rev_list[i-2])
+            if (rev_list[i-3], rev_list[i-2]) != (rev_list[i-1], rev_list[i]):
                 is_padded = False
                 break
         if is_padded:
-            for i in range(padding_len):
+            for i in range(padding_len * 2):
+                hex_list = list(hex_list)
                 hex_list.pop()
+        return hex_list
 
 
