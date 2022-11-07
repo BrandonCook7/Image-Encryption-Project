@@ -5,9 +5,6 @@ import math
 
 import utils
 
-from pyparsing import col
-from sqlalchemy import column
-
 #rcon_lookup = (0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36)
 rcon_lookup = (0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36)
 
@@ -257,7 +254,7 @@ class AES():
             message_blocks[b_index] = self.add_rm_round_key(message_blocks[b_index], round_keys[10])
         print("ENCRYPTED BLOCKS")
         print(message_blocks)
-        self.convert_blocks_to_output(message_blocks)
+        self.convert_blocks_to_output(message_blocks, "output.txt")
         #self.convert_input_to_blocks()
 
     def decyrpt_aes(self):
@@ -279,8 +276,8 @@ class AES():
             encrypted_blocks[i] = self.add_rm_round_key(encrypted_blocks[i], round_keys[0])
                 
         print(encrypted_blocks)
-        self.convert_blocks_to_output(encrypted_blocks)
-        self.convert_back_to_string("output.txt")
+        self.convert_blocks_to_output(encrypted_blocks, "decrypt.txt")
+        self.convert_back_to_string("decrypt.txt")
 
     def convert_input_to_blocks(self, filename):
         encrypted_blocks = []
@@ -288,6 +285,8 @@ class AES():
         lines = file.readlines()
         file.close()
         blocks_string = lines[0]
+        if len(blocks_string) == 0:
+            return LookupError(filename + " is empty")
         #print(lines)
         blocks_total = len(blocks_string) / 32
         blocks_total = int(blocks_total)
@@ -305,8 +304,8 @@ class AES():
         return encrypted_blocks
         #print(hex(int(blocks_string[0:2], 16)))
 
-    def convert_blocks_to_output(self, message_blocks: list):
-        file = open("output.txt", "w")
+    def convert_blocks_to_output(self, message_blocks: list, filename):
+        file = open(filename, "w")
         for block in message_blocks:
             temp_str = ""
             for i in range(4):
@@ -325,7 +324,11 @@ class AES():
         print(line)
         message = ""
         for i in range(1, len(hex_list), 2):
-            hex_string = "0x" + hex_list[i-1] + hex_list[i]
+            if hex_list[i-1] == "0":
+                hex_string = "0x" + hex_list[i]
+            else:
+                hex_string = "0x" + hex_list[i-1] + hex_list[i]
+            #message += bytes.fromhex(hex_string).decode('utf-8')
             message += chr(int(hex_string, 16))
         print(message)
             
