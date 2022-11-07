@@ -15,6 +15,10 @@ def main():
     #aes.decyrpt_aes()
     #aes.convert_key()
     #aes.pad_hex()
+    aes = AES()
+    #aes.encrypt_aes("message_file", "output.txt", "brandon")
+    #aes.encrypt_aes("test_image.jpg", "output_image.jpg", "brandon")
+    #aes.decyrpt_aes("output_image.jpg", "new_image.jpg", "brandon")
     menu()
 
 def menu():

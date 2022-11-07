@@ -4,6 +4,7 @@ import numpy as np
 import math
 
 import utils
+import base64
 
 #rcon_lookup = (0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36)
 rcon_lookup = (0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36)
@@ -224,7 +225,32 @@ class AES():
                 return_array[i][j] = hex(int(array[i][j],16) ^ int(round_key[i][j], 16))
         return return_array
     
-    
+    def convert_jpeg_to_base64(self, filename):
+        with open(filename, "rb") as bin_file:
+            #Converts the binary to base64 then to hexadecimal
+            encoded_string = base64.b64encode((bin_file.read())).decode("utf-8")#.hex()
+        return encoded_string
+
+    def convert_base64_to_jpeg(self, filename):
+        # with open("decrypt.txt") as hex_file:
+        #     temp_list = hex_file.readlines()
+        #     base64_string = base64.b64encode(bytes.fromhex(temp_list[0])).decode()
+        #     decode_string = base64.b64decode(int(hex_file,16))
+        file1 = open("decrypt.txt", "r")
+        base64_string = bytes.fromhex(file1.read())#base64.b64encode(bytes.fromhex(file1.read())).decode()
+        file1.close()
+
+        file2 = open(filename, "wb")
+        print(base64_string)
+        print("")
+        print(base64.b64decode(base64_string))#.decode("utf-8"))
+        file2.write(base64.b64decode(base64_string))
+        file2.close()
+        # with open(filename, "rb") as bin_file:
+        #     encoded_string = base64.b64encode((bin_file.read())).hex()
+        # return encoded_string
+
+
     def encrypt_aes(self, input_filename, output_filename, key_phrase):
         #TODO Implement CBC option
         self.key_phrase = key_phrase
@@ -233,7 +259,11 @@ class AES():
         if len(round_keys) != self.rounds + 1:
             return ValueError("Wrong amount of round keys")
         if self.message == "":
-            self.read_txt_file(input_filename)
+            if input_filename[len(input_filename)-3:] == "jpg" or input_filename[len(input_filename)-4:] == "jpeg":
+                print("JPEG Photo Encrypted")
+                self.message = self.convert_jpeg_to_base64(input_filename)
+            else:
+                self.read_txt_file(input_filename)
         message_blocks = self.convert_message()
         for b_index in range(len(message_blocks)):
             #First round
@@ -250,7 +280,11 @@ class AES():
             self.sub_bytes(message_blocks[b_index])
             self.shift_rows(message_blocks[b_index])
             message_blocks[b_index] = self.add_rm_round_key(message_blocks[b_index], round_keys[10])
-        self.convert_blocks_to_output(message_blocks, output_filename)
+        if input_filename[len(input_filename)-3:] == "jpg" or input_filename[len(input_filename)-4:] == "jpeg":
+            self.convert_blocks_to_output(message_blocks, "decrypt.txt")
+            self.convert_base64_to_jpeg(output_filename)
+        else:
+            self.convert_blocks_to_output(message_blocks, output_filename)
         print("Encrypted output written to " + output_filename)
 
     def decyrpt_aes(self, input_filename, output_filename, key_phrase):
@@ -274,14 +308,24 @@ class AES():
             encrypted_blocks[i] = self.add_rm_round_key(encrypted_blocks[i], round_keys[0])
 
         self.convert_blocks_to_output(encrypted_blocks, "decrypt.txt")
-        self.convert_back_to_file("decrypt.txt", output_filename)
+        if output_filename[len(output_filename)-3:] == "jpg" or output_filename[len(output_filename)-4:] == "jpeg":
+            self.convert_blocks_to_output(encrypted_blocks, "decrypt.txt")
+            self.convert_base64_to_jpeg(output_filename)
+        else:
+            self.convert_back_to_file("decrypt.txt", output_filename)
 
     def convert_input_to_blocks(self, filename):
         encrypted_blocks = []
-        file = open(filename, "r")
-        lines = file.readlines()
-        file.close()
-        blocks_string = lines[0]
+        blocks_string = ""
+        if filename[len(filename)-3:] == "jpg" or filename[len(filename)-4:] == "jpeg":
+            print("JPEG Photo Encrypted")
+            self.message = self.convert_jpeg_to_base64(filename)
+            blocks_string = base64.b64decode(self.message).hex()
+        else:
+            file = open(filename, "r")
+            lines = file.readlines()
+            file.close()
+            blocks_string = lines[0]
         if len(blocks_string) == 0:
             return LookupError(filename + " is empty")
         #print(lines)
@@ -363,9 +407,6 @@ class AES():
         return message_blocks
 
     def convert_key(self):
-        #Example passphrase "password12345678"
-        #hex_list = [format(ord(c), "x") for c in list(self.key_phrase) if True]
-
         hex_list = [hex(ord(c)) for c in list(self.key_phrase) if True]
         if len(self.key_phrase) * 8 < self.block_size:
             #print(len(self.key_phrase))
