@@ -1,3 +1,6 @@
+from tkinter import *
+from tkinter import filedialog
+import tkinter as tk
 
 #https://en.wikipedia.org/wiki/Rijndael_S-box
 s_box = (
@@ -134,3 +137,23 @@ def lookup_table(_hex, table):
     #Don't use hex function since it will print 0x7 instead of 0x07
     #return (f"0x{(s_box[row + y_coord]):02x}")
     return hex(table[row+y_coord])
+
+def select_file_encrypted(title_msg):
+    #Used to hide the default tkinter window
+    root = tk.Tk()
+    root.withdraw()
+
+    filename = filedialog.askopenfilename(title = title_msg, filetype = (("Text files","*.txt"),("Image files",".jpg"),("all files","*.*")))
+    #Make sure to destory tkinter hidden window before you leave function
+    root.destroy()
+    return filename
+
+def select_file_decrypted(title_msg):
+    #Used to hide the default tkinter window
+    root = tk.Tk()
+    root.withdraw()
+
+    filename = filedialog.askopenfilename(title = title_msg, filetypes = (("Text files","*.txt"),("all files","*.*")))
+    #Make sure to destory tkinter hidden window before you leave function
+    root.destroy()
+    return filename

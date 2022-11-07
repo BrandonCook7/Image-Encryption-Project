@@ -1,4 +1,5 @@
 from aes import *
+from utils import select_file_encrypted, select_file_decrypted
 
 def main():
     print("Hello World!")
@@ -29,25 +30,28 @@ def menu():
         if choice == 0:
             break
         elif choice == 1:
-            message = input("Enter message to encrypt: ")
+            input_filename = select_file_encrypted("Select file to encrypt")
+            output_filename = select_file_decrypted("Choose location to write encrypted file")
+            # message = input("Enter message to encrypt: ")
             password = input("Enter password to encrypt message: ")
             password2 = input("Enter password again: ")
             if password == password2:
-                aes = AES(password, message)
-                aes.encrypt_aes()
-                print("Encrypted message is stored in output.txt")
+                aes = AES()
+                aes.encrypt_aes(input_filename, output_filename, password)
+                print("Encrypted message is stored in " + output_filename)
             else:
                 print("Passwords do not match")
                 break
             choice = -1
         elif choice == 2:
-            print("Enter encrypted message in input.txt")
-            input("Press enter once you have enterred the encrypted message")
+            #input("What file do you want to decrypt? ")
+            input_filename = select_file_encrypted("Select file to decrypt")
+            output_filename = select_file_decrypted("Choose location to write decrypted file")
             password = input("Enter password of encrypted message: ")
             password2 = input("Enter password again: ")
             if password == password2:
-                aes = AES(password, "")
-                aes.decyrpt_aes()
+                aes = AES()
+                aes.decyrpt_aes(input_filename, output_filename, password)
             else:
                 print("Passwords do not match")
                 break

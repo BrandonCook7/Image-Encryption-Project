@@ -20,10 +20,10 @@ inv_mix_columns_matrix = np.array([[0x0e, 0x0b, 0x0d, 0x09],
                                 [0x0b, 0x0d, 0x09, 0x0e]])
 
 class AES():
-    def __init__(self, key_phrase, message):
+    def __init__(self):
         #Key must be exactly 128 bits or exactly 16 chars currently
-        self.key_phrase = key_phrase
-        self.message = message
+        self.key_phrase = ""
+        self.message = ""
         self.block_size = 128
         self.rounds = 10
         self.n = 4 #4 for 128bits, 6 for 192bits, 8 for 256bits
@@ -37,6 +37,12 @@ class AES():
                     return hex(int(y_hex[2] + x_hex[2],16))
         return LookupError("Can not find inverse of that hexadecimal")
 
+    def read_txt_file(self, filename):
+        file = open(filename, "r")
+        lines = file.readlines()
+        file.close()
+        for i in lines:
+            self.message += i
 
     def create_rcon_table(self):
         #Create 4x11 array in numpy
@@ -219,50 +225,43 @@ class AES():
         return return_array
     
     
-    def encrypt_aes(self):
+    def encrypt_aes(self, input_filename, output_filename, key_phrase):
         #TODO Implement CBC option
+        self.key_phrase = key_phrase
         key = self.convert_key()
         round_keys = self.create_round_keys(key)
         if len(round_keys) != self.rounds + 1:
             return ValueError("Wrong amount of round keys")
+        if self.message == "":
+            self.read_txt_file(input_filename)
         message_blocks = self.convert_message()
-        # print("ORIGINAL BLOCKS")
-        # print(message_blocks)
         for b_index in range(len(message_blocks)):
             #First round
             message_blocks[b_index] = self.add_rm_round_key(message_blocks[b_index], round_keys[0])
+
             #Rounds 2-10
             for round in range(self.rounds - 1):
-                # print(block)
-                
                 self.sub_bytes(message_blocks[b_index])
-                # print(block)
                 self.shift_rows(message_blocks[b_index])
-                # print("SHIFT ROWS \n")
-                # print(block)
-                # print("NEW BLOCK \n")
                 self.mix_columns(message_blocks[b_index])
-                # print("MIX COLUMNS \n")
-                # print(block)
                 message_blocks[b_index] = self.add_rm_round_key(message_blocks[b_index], round_keys[round+1])
-                # print("ADD ROUND KEY \n")
-                # print(block)
+
             #Round 11
-            
             self.sub_bytes(message_blocks[b_index])
             self.shift_rows(message_blocks[b_index])
             message_blocks[b_index] = self.add_rm_round_key(message_blocks[b_index], round_keys[10])
-        print("ENCRYPTED BLOCKS")
-        print(message_blocks)
-        self.convert_blocks_to_output(message_blocks, "output.txt")
-        #self.convert_input_to_blocks()
+        self.convert_blocks_to_output(message_blocks, output_filename)
+        print("Encrypted output written to " + output_filename)
 
-    def decyrpt_aes(self):
+    def decyrpt_aes(self, input_filename, output_filename, key_phrase):
+        self.key_phrase = key_phrase
         key = self.convert_key()
         round_keys = self.create_round_keys(key)
         if len(round_keys) != self.rounds + 1:
             return ValueError("Wrong amount of round keys")
-        encrypted_blocks = self.convert_input_to_blocks("input.txt")
+        # if self.message == "":
+        #     self.read_txt_file(input_filename)
+        encrypted_blocks = self.convert_input_to_blocks(input_filename)
         for i in reversed(range(len(encrypted_blocks))):
             encrypted_blocks[i] = self.add_rm_round_key(encrypted_blocks[i], round_keys[10])
             self.unshift_rows(encrypted_blocks[i])
@@ -270,14 +269,12 @@ class AES():
             for round in reversed(range(self.rounds - 1)):
                 encrypted_blocks[i] = self.add_rm_round_key(encrypted_blocks[i], round_keys[round+1])
                 self.inverse_mix_columns(encrypted_blocks[i])
-                print(encrypted_blocks[i])
                 self.unshift_rows(encrypted_blocks[i])
                 self.inverse_sub_bytes(encrypted_blocks[i])
             encrypted_blocks[i] = self.add_rm_round_key(encrypted_blocks[i], round_keys[0])
-                
-        print(encrypted_blocks)
+
         self.convert_blocks_to_output(encrypted_blocks, "decrypt.txt")
-        self.convert_back_to_string("decrypt.txt")
+        self.convert_back_to_file("decrypt.txt", output_filename)
 
     def convert_input_to_blocks(self, filename):
         encrypted_blocks = []
@@ -314,8 +311,8 @@ class AES():
             file.write(temp_str)
         file.close()
     
-    def convert_back_to_string(self, filename):
-        file = open(filename, "r")
+    def convert_back_to_file(self, hex_filename, output_filename):
+        file = open(hex_filename, "r")
         lines = file.readlines()
         file.close()
         line = lines[0]
@@ -328,9 +325,12 @@ class AES():
                 hex_string = "0x" + hex_list[i]
             else:
                 hex_string = "0x" + hex_list[i-1] + hex_list[i]
-            #message += bytes.fromhex(hex_string).decode('utf-8')
             message += chr(int(hex_string, 16))
         print(message)
+        file2 = open(output_filename, "w")
+        file2.writelines(message)
+        file2.close()
+        
             
 
 
@@ -399,7 +399,7 @@ class AES():
             hex_list.append(hex_to_append)
     #Undoes PKCS#7 padding
     def unpad_hex(self, hex_list: list):
-        hex_len: list = hex_list[len(hex_list)-1]
+        hex_len = hex_list[len(hex_list)-1]
         padding_len = int(hex_len, 16)
         rev_list = hex_list[::-1]
         #rev_list.reverse()
