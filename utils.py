@@ -138,7 +138,7 @@ def lookup_table(_hex, table):
     #return (f"0x{(s_box[row + y_coord]):02x}")
     return hex(table[row+y_coord])
 
-def select_file_encrypted(title_msg):
+def select_data_all(title_msg):
     #Used to hide the default tkinter window
     root = tk.Tk()
     root.withdraw()
@@ -148,12 +148,22 @@ def select_file_encrypted(title_msg):
     root.destroy()
     return filename
 
-def select_file_decrypted(title_msg):
+def select_data_file(title_msg):
     #Used to hide the default tkinter window
     root = tk.Tk()
     root.withdraw()
 
     filename = filedialog.askopenfilename(title = title_msg, filetypes = (("Text files","*.txt"),("all files","*.*")))
+    #Make sure to destory tkinter hidden window before you leave function
+    root.destroy()
+    return filename
+
+def select_data_jpeg(title_msg):
+    #Used to hide the default tkinter window
+    root = tk.Tk()
+    root.withdraw()
+
+    filename = filedialog.askopenfilename(title = title_msg, filetype = (("Image files",".jpg"),("all files","*.*")))
     #Make sure to destory tkinter hidden window before you leave function
     root.destroy()
     return filename

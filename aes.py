@@ -244,6 +244,8 @@ class AES():
         print(base64_string)
         print("")
         print(base64.b64decode(base64_string))#.decode("utf-8"))
+        b = base64.b64decode(base64_string)
+        print(b.decode("utf-8"))
         file2.write(base64.b64decode(base64_string))
         file2.close()
         # with open(filename, "rb") as bin_file:
