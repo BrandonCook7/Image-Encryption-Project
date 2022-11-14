@@ -239,13 +239,13 @@ class AES():
         file1 = open("decrypt.txt", "r")
         base64_string = bytes.fromhex(file1.read())#base64.b64encode(bytes.fromhex(file1.read())).decode()
         file1.close()
-
+        base64_string = base64_string.encode("utf-8")
         file2 = open(filename, "wb")
         print(base64_string)
         print("")
         print(base64.b64decode(base64_string))#.decode("utf-8"))
         b = base64.b64decode(base64_string)
-        print(b.decode("utf-8"))
+        #print(b.decode("utf-8"))
         file2.write(base64.b64decode(base64_string))
         file2.close()
         # with open(filename, "rb") as bin_file:

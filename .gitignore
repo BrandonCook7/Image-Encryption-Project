@@ -1,2 +1,4 @@
-__pycache__/.
-__.vscode__/.
+__pycache__/
+*.py[cod]
+*$py.class
+.vscode__/.
