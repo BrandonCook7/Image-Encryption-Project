@@ -226,31 +226,82 @@ class AES():
         return return_array
     
     def convert_jpeg_to_base64(self, filename):
-        with open(filename, "rb") as bin_file:
-            #Converts the binary to base64 then to hexadecimal
-            encoded_string = base64.b64encode((bin_file.read())).decode("utf-8")#.hex()
+        #First conver jpeg to ppm, this format helps with reading the header
+
+        loc = utils.convert_jpg_to_other(filename, "ppm")
+        file1 = open(loc, 'rb')
+        header_info = ""
+        for i in range(3):
+            header_info += file1.readline().decode("utf-8")
+        file2 = open("temp/header.txt", "w")
+        file2.write(header_info)
+        file2.close()
+        og = file1.read()
+        encoded_string = base64.b64encode((og)).decode("utf-8")#.hex()
+        file1.close()
+
+        # with open(loc, "rb") as bin_file:
+        #     #Converts the binary to base64 then to hexadecimal
+        #     encoded_string = base64.b64encode((bin_file.read())).decode("utf-8")#.hex()
         return encoded_string
 
-    def convert_base64_to_jpeg(self, filename):
+    def convert_base64_to_ppm(self, input_filename, output_filename):
         # with open("decrypt.txt") as hex_file:
         #     temp_list = hex_file.readlines()
         #     base64_string = base64.b64encode(bytes.fromhex(temp_list[0])).decode()
         #     decode_string = base64.b64decode(int(hex_file,16))
         file1 = open("decrypt.txt", "r")
-        base64_string = bytes.fromhex(file1.read())#base64.b64encode(bytes.fromhex(file1.read())).decode()
+        base64_string = bytes.fromhex(file1.read())#.decode("ascii")#.encode("utf-8")#base64.b64encode(bytes.fromhex(file1.read())).decode()
         file1.close()
-        base64_string = base64_string.encode("utf-8")
-        file2 = open(filename, "wb")
-        print(base64_string)
-        print("")
-        print(base64.b64decode(base64_string))#.decode("utf-8"))
-        b = base64.b64decode(base64_string)
-        #print(b.decode("utf-8"))
-        file2.write(base64.b64decode(base64_string))
-        file2.close()
-        # with open(filename, "rb") as bin_file:
-        #     encoded_string = base64.b64encode((bin_file.read())).hex()
-        # return encoded_string
+        #base64_string = base64_string.encode("utf-8")
+        trim_amount = 0
+        if input_filename[len(input_filename)-3:] == "ppm":
+            trim_amount = 3
+        loc = "temp/" + output_filename[:-4] + ".ppm"
+        byte_string = base64.b64decode(base64_string)#.decode("ascii")
+        #print(byte_string)
+        header_file = open("temp/header.txt", "r")
+        header_string = header_file.read()
+        header_file.close()
+        #Write header file
+        ppm_header_file = open(loc, "w")
+        ppm_header_file.write(header_string)
+        ppm_header_file.close()
+        #Write byte data back to ppm
+        ppm_file = open(loc, "ab")
+        ppm_file.write(base64_string)
+        # print(base64_string)
+        # print("")
+        # print(base64.b64decode(base64_string))#.decode("utf-8"))
+        # b = base64.b64decode(base64_string)
+        # #print(b.decode("utf-8"))
+        # file2.write(base64.b64decode(base64_string))
+        ppm_file.close()
+        utils.show_image(loc)
+
+    def convert_base64_to_jpeg(self, input_filename, output_filename):
+        file1 = open("decrypt.txt", "r")
+        base64_string = bytes.fromhex(file1.read())#.decode("ascii")#.encode("utf-8")#base64.b64encode(bytes.fromhex(file1.read())).decode()
+        file1.close()
+        trim_amount = 0
+        if input_filename[len(input_filename)-3:] == "ppm":
+            trim_amount = 3
+        loc = "temp/" + output_filename[:-4] + ".ppm"
+        byte_string = base64.b64decode(base64_string)#.decode("ascii")
+        #print(byte_string)
+        header_file = open("temp/header.txt", "r")
+        header_string = header_file.read()
+        header_file.close()
+        #Write header file
+        ppm_header_file = open(loc, "w")
+        ppm_header_file.write(header_string)
+        ppm_header_file.close()
+        #Write byte data back to ppm
+        ppm_file = open(loc, "ab")
+        ppm_file.write(byte_string)
+
+        ppm_file.close()
+        utils.show_image(loc)
 
 
     def encrypt_aes(self, input_filename, output_filename, key_phrase):
@@ -284,7 +335,7 @@ class AES():
             message_blocks[b_index] = self.add_rm_round_key(message_blocks[b_index], round_keys[10])
         if input_filename[len(input_filename)-3:] == "jpg" or input_filename[len(input_filename)-4:] == "jpeg":
             self.convert_blocks_to_output(message_blocks, "decrypt.txt")
-            self.convert_base64_to_jpeg(output_filename)
+            self.convert_base64_to_ppm(input_filename, output_filename)
         else:
             self.convert_blocks_to_output(message_blocks, output_filename)
         print("Encrypted output written to " + output_filename)
@@ -310,16 +361,16 @@ class AES():
             encrypted_blocks[i] = self.add_rm_round_key(encrypted_blocks[i], round_keys[0])
 
         self.convert_blocks_to_output(encrypted_blocks, "decrypt.txt")
-        if output_filename[len(output_filename)-3:] == "jpg" or output_filename[len(output_filename)-4:] == "jpeg":
+        if output_filename[len(output_filename)-3:] == "jpg":
             self.convert_blocks_to_output(encrypted_blocks, "decrypt.txt")
-            self.convert_base64_to_jpeg(output_filename)
+            self.convert_base64_to_jpeg(input_filename, output_filename)
         else:
             self.convert_back_to_file("decrypt.txt", output_filename)
 
     def convert_input_to_blocks(self, filename):
         encrypted_blocks = []
         blocks_string = ""
-        if filename[len(filename)-3:] == "jpg" or filename[len(filename)-4:] == "jpeg":
+        if filename[len(filename)-3:] == "ppm":
             print("JPEG Photo Encrypted")
             self.message = self.convert_jpeg_to_base64(filename)
             blocks_string = base64.b64decode(self.message).hex()

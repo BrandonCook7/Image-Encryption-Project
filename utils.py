@@ -2,6 +2,8 @@ from tkinter import *
 from tkinter import filedialog
 import tkinter as tk
 
+from PIL import Image
+
 #https://en.wikipedia.org/wiki/Rijndael_S-box
 s_box = (
     0x63, 0x7C, 0x77, 0x7B, 0xF2, 0x6B, 0x6F, 0xC5, 0x30, 0x01, 0x67, 0x2B, 0xFE, 0xD7, 0xAB, 0x76,
@@ -167,3 +169,33 @@ def select_data_jpeg(title_msg):
     #Make sure to destory tkinter hidden window before you leave function
     root.destroy()
     return filename
+
+
+def convert_jpg_to_other(filename, format_ext):
+    if filename[len(filename)-3:] == "jpg": 
+        im = Image.open(filename)
+        print(filename[:-3])
+        loc = "temp/" + filename[:-3] + format_ext
+        if format_ext == "ppm":
+            im.compression = 'yes'
+        im.save(loc, quality=100)
+        return loc
+    elif filename[len(filename)-4:] == "jpeg":
+        im = Image.open(filename)
+        print(filename[:-4])
+        loc = "temp/" + filename[:-4] + format_ext
+        if format_ext == "ppm":
+            im.compression = 'no'
+        im.save(loc)
+        return loc
+    elif filename[len(filename)-3:] == "ppm":
+        return filename
+    else:
+        return TypeError("Jpeg not passed into function.")
+
+def convert_ppm_to_jpg(ppm_filename, jpg_filename):
+    im = Image.open(ppm_filename)
+    im.save(jpg_filename)
+def show_image(filename):
+    im = Image.open(filename)
+    im.show()
