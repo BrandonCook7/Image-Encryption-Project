@@ -1,6 +1,7 @@
 from tkinter import *
 from tkinter import filedialog
 import tkinter as tk
+import os
 
 from PIL import Image
 
@@ -140,42 +141,58 @@ def lookup_table(_hex, table):
     #return (f"0x{(s_box[row + y_coord]):02x}")
     return hex(table[row+y_coord])
 
-def select_data_all(title_msg):
+def select_data_all(title_msg, initial_file = None):
     #Used to hide the default tkinter window
     root = tk.Tk()
     root.withdraw()
 
-    filename = filedialog.askopenfilename(title = title_msg, filetype = (("Text files","*.txt"),("Image files",".jpg"),("all files","*.*")))
+    filename = filedialog.askopenfilename(title = title_msg, initialdir=os.getcwd(), initialfile=initial_file, filetypes = (("Text files","*.txt"),("PPM files","*.ppm"),("Image files",".jpg"),("all files","*.*")))
     #Make sure to destory tkinter hidden window before you leave function
     root.destroy()
     return filename
 
-def select_data_file(title_msg):
+def select_data_file(title_msg, initial_file = None):
     #Used to hide the default tkinter window
     root = tk.Tk()
     root.withdraw()
 
-    filename = filedialog.askopenfilename(title = title_msg, filetypes = (("Text files","*.txt"),("all files","*.*")))
+    filename = filedialog.askopenfilename(title = title_msg, initialdir=os.getcwd(), initialfile=initial_file, filetypes = (("Text files","*.txt"),("all files","*.*")))
     #Make sure to destory tkinter hidden window before you leave function
     root.destroy()
     return filename
 
-def select_data_jpeg(title_msg):
+def select_data_jpeg(title_msg, initial_file = None):
     #Used to hide the default tkinter window
     root = tk.Tk()
     root.withdraw()
 
-    filename = filedialog.askopenfilename(title = title_msg, filetype = (("Image files",".jpg"),("all files","*.*")))
+    filename = filedialog.askopenfilename(title = title_msg, initialdir=os.getcwd(), initialfile=initial_file, filetypes = (("Image files",".jpg"),("all files","*.*")))
     #Make sure to destory tkinter hidden window before you leave function
     root.destroy()
     return filename
 
+def select_data_ppm(title_msg, initial_file = None):
+    #Used to hide the default tkinter window
+    root = tk.Tk()
+    root.withdraw()
+    #Open file in current directory
+    filename = filedialog.askopenfilename(title = title_msg, initialdir=os.getcwd(), initialfile=initial_file, filetypes = (("PPM files","*.ppm"),("all files","*.*")))
+    #Make sure to destory tkinter hidden window before you leave function
+    root.destroy()
+    return filename
+
+def select_save_location(title_msg):
+    root = tk.Tk()
+    root.withdraw()
+    file_directory = filedialog.askdirectory(title = title_msg, initialdir=os.getcwd())
+    root.destroy()
+    return file_directory
 
 def convert_jpg_to_other(filename, format_ext):
     if filename[len(filename)-3:] == "jpg": 
         im = Image.open(filename)
         print(filename[:-3])
-        loc = "temp/" + filename[:-3] + format_ext
+        loc = os.getcwd() + "/temp/" + find_file_name(filename)[:-3] + format_ext
         if format_ext == "ppm":
             im.compression = 'yes'
         im.save(loc, quality=100)
@@ -199,3 +216,16 @@ def convert_ppm_to_jpg(ppm_filename, jpg_filename):
 def show_image(filename):
     im = Image.open(filename)
     im.show()
+
+
+def find_file_name(directory):
+    name_start_index = 0
+    file_name = ""
+    for index in range(len(directory)-1, -1, -1):
+        if directory[index] == '/':
+            name_start_index = index
+            break
+        else:
+            file_name += directory[index]
+    #This returns the string created and reverses it
+    return file_name[::-1]

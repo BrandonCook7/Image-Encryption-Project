@@ -3,8 +3,12 @@ import pandas as pd
 import numpy as np
 import math
 
+import os
 import utils
 import base64
+
+from time import sleep
+from tqdm import tqdm
 
 #rcon_lookup = (0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36)
 rcon_lookup = (0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36)
@@ -226,7 +230,7 @@ class AES():
         return return_array
     
     def convert_jpeg_to_base64(self, filename):
-        #First conver jpeg to ppm, this format helps with reading the header
+        #First convert jpeg to ppm, this format helps with reading the header
 
         loc = utils.convert_jpg_to_other(filename, "ppm")
         file1 = open(loc, 'rb')
@@ -240,16 +244,9 @@ class AES():
         encoded_string = base64.b64encode((og)).decode("utf-8")#.hex()
         file1.close()
 
-        # with open(loc, "rb") as bin_file:
-        #     #Converts the binary to base64 then to hexadecimal
-        #     encoded_string = base64.b64encode((bin_file.read())).decode("utf-8")#.hex()
         return encoded_string
 
     def convert_base64_to_ppm(self, input_filename, output_filename):
-        # with open("decrypt.txt") as hex_file:
-        #     temp_list = hex_file.readlines()
-        #     base64_string = base64.b64encode(bytes.fromhex(temp_list[0])).decode()
-        #     decode_string = base64.b64decode(int(hex_file,16))
         file1 = open("decrypt.txt", "r")
         base64_string = bytes.fromhex(file1.read())#.decode("ascii")#.encode("utf-8")#base64.b64encode(bytes.fromhex(file1.read())).decode()
         file1.close()
@@ -257,27 +254,22 @@ class AES():
         trim_amount = 0
         if input_filename[len(input_filename)-3:] == "ppm":
             trim_amount = 3
-        loc = "temp/" + output_filename[:-4] + ".ppm"
-        byte_string = base64.b64decode(base64_string)#.decode("ascii")
+        #loc = "temp/" + output_filename[:-4] + ".ppm"
+        #byte_string = base64.b64decode(base64_string)#.decode("ascii")
         #print(byte_string)
         header_file = open("temp/header.txt", "r")
         header_string = header_file.read()
         header_file.close()
         #Write header file
-        ppm_header_file = open(loc, "w")
+        #ppm_header_file = open(loc, "w")
+        ppm_header_file = open(output_filename, "w")
         ppm_header_file.write(header_string)
         ppm_header_file.close()
-        #Write byte data back to ppm
-        ppm_file = open(loc, "ab")
+
+        ppm_file = open(output_filename, "ab")
         ppm_file.write(base64_string)
-        # print(base64_string)
-        # print("")
-        # print(base64.b64decode(base64_string))#.decode("utf-8"))
-        # b = base64.b64decode(base64_string)
-        # #print(b.decode("utf-8"))
-        # file2.write(base64.b64decode(base64_string))
         ppm_file.close()
-        utils.show_image(loc)
+        utils.show_image(output_filename)
 
     def convert_base64_to_jpeg(self, input_filename, output_filename):
         file1 = open("decrypt.txt", "r")
@@ -286,9 +278,12 @@ class AES():
         trim_amount = 0
         if input_filename[len(input_filename)-3:] == "ppm":
             trim_amount = 3
-        loc = "temp/" + output_filename[:-4] + ".ppm"
+        loc = os.getcwd() + "/temp/" + utils.find_file_name(output_filename)[:-4] + ".ppm"
+        #loc = "temp/" + output_filename[:-4] + ".ppm"
         byte_string = base64.b64decode(base64_string)#.decode("ascii")
-        #print(byte_string)
+
+        #You first need to create the decrypted ppm file,
+        #Then convert the ppm back to jpeg
         header_file = open("temp/header.txt", "r")
         header_string = header_file.read()
         header_file.close()
@@ -299,9 +294,9 @@ class AES():
         #Write byte data back to ppm
         ppm_file = open(loc, "ab")
         ppm_file.write(byte_string)
-
         ppm_file.close()
-        utils.show_image(loc)
+        #utils.show_image(loc)
+        utils.convert_ppm_to_jpg(loc, output_filename)
 
 
     def encrypt_aes(self, input_filename, output_filename, key_phrase):
@@ -318,7 +313,7 @@ class AES():
             else:
                 self.read_txt_file(input_filename)
         message_blocks = self.convert_message()
-        for b_index in range(len(message_blocks)):
+        for b_index in tqdm(range(len(message_blocks))):
             #First round
             message_blocks[b_index] = self.add_rm_round_key(message_blocks[b_index], round_keys[0])
 
@@ -349,7 +344,7 @@ class AES():
         # if self.message == "":
         #     self.read_txt_file(input_filename)
         encrypted_blocks = self.convert_input_to_blocks(input_filename)
-        for i in reversed(range(len(encrypted_blocks))):
+        for i in tqdm(reversed(range(len(encrypted_blocks)))):
             encrypted_blocks[i] = self.add_rm_round_key(encrypted_blocks[i], round_keys[10])
             self.unshift_rows(encrypted_blocks[i])
             self.inverse_sub_bytes(encrypted_blocks[i])
