@@ -223,9 +223,10 @@ class AES():
 
     #This function supports all AES bit configurations
     def unshift_rows(self, shift_array: np.ndarray):
-        shift_array[1] = np.roll(shift_array[1], 1)
-        shift_array[2] = np.roll(shift_array[2], 2)
-        shift_array[3] = np.roll(shift_array[3], 3)
+        return shift_array.take((0,1,2,3,7,4,5,6,10,11,8,9,13,14,15,12)).reshape(4, 4)
+        # shift_array[1] = np.roll(shift_array[1], 1)
+        # shift_array[2] = np.roll(shift_array[2], 2)
+        # shift_array[3] = np.roll(shift_array[3], 3)
 
 
     #This function adds the round key or removes the round key depending
@@ -354,12 +355,12 @@ class AES():
         encrypted_blocks = self.convert_input_to_blocks(input_filename)
         for i in tqdm(reversed(range(len(encrypted_blocks)))):
             encrypted_blocks[i] = self.add_rm_round_key(encrypted_blocks[i], round_keys[10])
-            self.unshift_rows(encrypted_blocks[i])
+            encrypted_blocks[i] = self.unshift_rows(encrypted_blocks[i])
             self.inverse_sub_bytes(encrypted_blocks[i], s_box_dict)
             for round in reversed(range(self.rounds - 1)):
                 encrypted_blocks[i] = self.add_rm_round_key(encrypted_blocks[i], round_keys[round+1])
                 self.inverse_mix_columns(encrypted_blocks[i])
-                self.unshift_rows(encrypted_blocks[i])
+                encrypted_blocks[i] = self.unshift_rows(encrypted_blocks[i])
                 self.inverse_sub_bytes(encrypted_blocks[i], s_box_dict)
             encrypted_blocks[i] = self.add_rm_round_key(encrypted_blocks[i], round_keys[0])
 
