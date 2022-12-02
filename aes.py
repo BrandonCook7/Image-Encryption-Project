@@ -32,6 +32,15 @@ class AES():
         self.block_size = 128
         self.rounds = 10
         self.n = 4 #4 for 128bits, 6 for 192bits, 8 for 256bits
+    def create_inverse_s_box_dict(self):
+        table_dict = {}
+        for y_coord in range(16):
+            for x_coord in range(16):
+                row = y_coord * 16
+                table_dict[hex(utils.s_box[row+x_coord])] = (hex(x_coord), hex(y_coord))
+        return table_dict
+                
+
     def inverse_sub_from_s_box(self, _hex):
         for y_coord in range(16):
             for x_coord in range(16):
@@ -126,16 +135,10 @@ class AES():
         #print(len(key_expanded))
         return key_expanded
     
-    #Rotate a specific column up one from a 4x4 ndarray, uses for the RotWord
+    #Rotate a specific column up one from a 4x4 ndarray, used for the RotWord
     def rotate_column_up(self, key_array: np.ndarray, column):
         column_array = np.array([key_array[1][column], key_array[2][column], key_array[3][column], key_array[0][column]])
         return column_array
-        # temp = key_array[0][column]
-        # key_array[0][column] = key_array[1][column]
-        # key_array[1][column] = key_array[2][column]
-        # key_array[2][column] = key_array[3][column]
-        # key_array[3][column] = temp
-        # print(column_array)
 
 
     def mix_columns(self, mix_array: np.ndarray):
@@ -203,9 +206,11 @@ class AES():
         for pos, x in np.ndenumerate(sub_array):
             sub_array[pos[0]][pos[1]] = utils.lookup_table(x, utils.s_box)
 
-    def inverse_sub_bytes(self, sub_array: np.ndarray):
+    def inverse_sub_bytes(self, sub_array: np.ndarray, s_box_dict: dict):
         for pos, x in np.ndenumerate(sub_array):
-            sub_array[pos[0]][pos[1]] = self.inverse_sub_from_s_box(x)
+            #return hex(int(y_hex[2] + x_hex[2],16))
+            x_hex, y_hex = s_box_dict[x]
+            sub_array[pos[0]][pos[1]] = hex(int(y_hex[2] + x_hex[2],16))
 
     #This function supports all AES bit configurations
     def shift_rows(self, shift_array: np.ndarray):
@@ -339,20 +344,20 @@ class AES():
         self.key_phrase = key_phrase
         key = self.convert_key()
         round_keys = self.create_round_keys(key)
+        #Used for inverse s box
+        s_box_dict = self.create_inverse_s_box_dict()
         if len(round_keys) != self.rounds + 1:
             return ValueError("Wrong amount of round keys")
-        # if self.message == "":
-        #     self.read_txt_file(input_filename)
         encrypted_blocks = self.convert_input_to_blocks(input_filename)
         for i in tqdm(reversed(range(len(encrypted_blocks)))):
             encrypted_blocks[i] = self.add_rm_round_key(encrypted_blocks[i], round_keys[10])
             self.unshift_rows(encrypted_blocks[i])
-            self.inverse_sub_bytes(encrypted_blocks[i])
+            self.inverse_sub_bytes(encrypted_blocks[i], s_box_dict)
             for round in reversed(range(self.rounds - 1)):
                 encrypted_blocks[i] = self.add_rm_round_key(encrypted_blocks[i], round_keys[round+1])
                 self.inverse_mix_columns(encrypted_blocks[i])
                 self.unshift_rows(encrypted_blocks[i])
-                self.inverse_sub_bytes(encrypted_blocks[i])
+                self.inverse_sub_bytes(encrypted_blocks[i], s_box_dict)
             encrypted_blocks[i] = self.add_rm_round_key(encrypted_blocks[i], round_keys[0])
 
         self.convert_blocks_to_output(encrypted_blocks, "decrypt.txt")
