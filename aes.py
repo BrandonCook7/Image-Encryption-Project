@@ -7,8 +7,9 @@ import os
 import utils
 import base64
 
-from time import sleep
 from tqdm import tqdm
+
+import time
 
 #rcon_lookup = (0x8d, 0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36)
 rcon_lookup = (0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1B, 0x36)
@@ -227,14 +228,14 @@ class AES():
         file2.write(header_info)
         file2.close()
         og = file1.read()
-        encoded_string = base64.b64encode((og)).decode("utf-8")#.hex()
+        encoded_string = base64.b64encode((og)).decode("utf-8")
         file1.close()
 
         return encoded_string
 
     def convert_base64_to_ppm(self, input_filename, output_filename):
         file1 = open("decrypt.txt", "r")
-        base64_string = bytes.fromhex(file1.read())#.decode("ascii")#.encode("utf-8")#base64.b64encode(bytes.fromhex(file1.read())).decode()
+        base64_string = bytes.fromhex(file1.read())
         file1.close()
         trim_amount = 0
         if input_filename[len(input_filename)-3:] == "ppm":
@@ -288,21 +289,30 @@ class AES():
             return ValueError("Wrong amount of round keys")
         if self.message == "":
             if input_filename[len(input_filename)-3:] == "jpg" or input_filename[len(input_filename)-4:] == "jpeg":
-                print("JPEG Photo Encrypted")
                 self.message = self.convert_jpeg_to_base64(input_filename)
             else:
                 self.read_txt_file(input_filename)
         message_blocks = self.convert_message()
+        print("Encrypting " + utils.find_file_name(input_filename))
         for b_index in tqdm(range(len(message_blocks))):
             #First round
             message_blocks[b_index] = self.add_rm_round_key(message_blocks[b_index], round_keys[0])
 
             #Rounds 2-10
             for round in range(self.rounds - 1):
+                #start = time.process_time()
                 self.sub_bytes(message_blocks[b_index])
+                #print("Sub Bytes: " + str(time.process_time() - start))
+                #start = time.process_time()
                 message_blocks[b_index] = self.shift_rows(message_blocks[b_index])
+                #print("Shift Rows: " + str(time.process_time() - start))
+                #start = time.process_time()
                 self.mix_columns(message_blocks[b_index])
+                #print("Mix Columns: " + str(time.process_time() - start))
+                #start = time.process_time()
                 message_blocks[b_index] = self.add_rm_round_key(message_blocks[b_index], round_keys[round+1])
+                # print("Add Round Key: " + str(time.process_time() - start))
+                # print("temp")
 
             #Round 11
             self.sub_bytes(message_blocks[b_index])
@@ -313,7 +323,7 @@ class AES():
             self.convert_base64_to_ppm(input_filename, output_filename)
         else:
             self.convert_blocks_to_output(message_blocks, output_filename)
-        print("Encrypted output written to " + output_filename)
+        print("Encrypted file is stored in " + output_filename)
         self.clear_temp_dir()
 
     def decyrpt_aes(self, input_filename, output_filename, key_phrase):
@@ -325,6 +335,7 @@ class AES():
         if len(round_keys) != self.rounds + 1:
             return ValueError("Wrong amount of round keys")
         encrypted_blocks = self.convert_input_to_blocks(input_filename)
+        print("Decrypting " + utils.find_file_name(input_filename))
         for i in reversed(tqdm(range(len(encrypted_blocks)))):
             encrypted_blocks[i] = self.add_rm_round_key(encrypted_blocks[i], round_keys[10])
             encrypted_blocks[i] = self.unshift_rows(encrypted_blocks[i])
@@ -342,6 +353,7 @@ class AES():
             self.convert_base64_to_jpeg(input_filename, output_filename)
         else:
             self.convert_back_to_file("decrypt.txt", output_filename)
+        print("Decrypted file is stored in " + output_filename)
         self.clear_temp_dir()
 
     def clear_temp_dir(self):
@@ -354,7 +366,6 @@ class AES():
         encrypted_blocks = []
         blocks_string = ""
         if filename[len(filename)-3:] == "ppm":
-            print("JPEG Photo Encrypted")
             self.message = self.convert_jpeg_to_base64(filename)
             blocks_string = base64.b64decode(self.message).hex()
         else:
@@ -364,7 +375,6 @@ class AES():
             blocks_string = lines[0]
         if len(blocks_string) == 0:
             return LookupError(filename + " is empty")
-        #print(lines)
         blocks_total = len(blocks_string) / 32
         blocks_total = int(blocks_total)
 
@@ -377,9 +387,7 @@ class AES():
                     block_state[j][i] = hex(int(blocks_string[k:k+2],16))
                     k += 2
             encrypted_blocks.append(block_state)    
-        #print(encrypted_blocks)
         return encrypted_blocks
-        #print(hex(int(blocks_string[0:2], 16)))
 
     def convert_blocks_to_output(self, message_blocks: list, filename):
         file = open(filename, "w")
@@ -396,9 +404,7 @@ class AES():
         lines = file.readlines()
         file.close()
         line = lines[0]
-        print(line)
         hex_list = self.unpad_hex(line)
-        print(line)
         message = ""
         for i in range(1, len(hex_list), 2):
             if hex_list[i-1] == "0":
@@ -406,7 +412,7 @@ class AES():
             else:
                 hex_string = "0x" + hex_list[i-1] + hex_list[i]
             message += chr(int(hex_string, 16))
-        print(message)
+        #print(message)
         file2 = open(output_filename, "w")
         file2.writelines(message)
         file2.close()
@@ -485,5 +491,6 @@ class AES():
                 hex_list = list(hex_list)
                 hex_list.pop()
         return hex_list
+
 
 
