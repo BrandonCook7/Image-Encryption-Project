@@ -77,14 +77,6 @@ class AES():
 
         #Notes: Using default Python list as nesting a 2d array into a 1d numpy array, because it merges the columns
         key_expanded = [key_array] #np.array(key_array)
-        #Creates rot word as 1d array
-        # column_array = self.rotate_column_up(key_array, 3)
-        # print(column_array)
-
-        #Substitute Bytes
-        # for index in np.ndindex(column_array.shape):
-        #     column_array[index] = self.sub_from_s_box(column_array[index])[2:]#Trim to ignore 0x
-        #Create round constants table
         rcon_table = self.create_rcon_table()
 
         for round in range(self.rounds):
@@ -96,43 +88,28 @@ class AES():
                     #Substitute Bytes
                     for index in np.ndindex(rot_word.shape):
                         rot_word[index] = utils.lookup_table(rot_word[index], utils.s_box)#[2:]#Trim to ignore 0x
-                    #Convert's hex string values to integers for XOR operation
-                    #print(int(rcon_table[0][round],16))
-                    #print(rcon_table[0][round])
+
                     val1_int = int(key_expanded[round][0][col],16) ^ int(rot_word[0],16) ^ int(rcon_table[0][round],16)
                     val2_int = int(key_expanded[round][1][col],16) ^ int(rot_word[1],16) ^ int(rcon_table[1][round],16)
                     val3_int = int(key_expanded[round][2][col],16) ^ int(rot_word[2],16) ^ int(rcon_table[2][round],16)
                     val4_int = int(key_expanded[round][3][col],16) ^ int(rot_word[3],16) ^ int(rcon_table[3][round],16)
                     #After XOR operation stores keys back in hex values
-                    # round_key_x[col][0] = hex(val1_int)
-                    # round_key_x[col][1] = hex(val2_int)
-                    # round_key_x[col][2] = hex(val3_int)
-                    # round_key_x[col][3] = hex(val4_int)
                     round_key_x[0][col] = hex(val1_int)
                     round_key_x[1][col] = hex(val2_int)
                     round_key_x[2][col] = hex(val3_int)
                     round_key_x[3][col] = hex(val4_int)
                 else:
-                    # val1_int = int(key_expanded[round][0][col],16) ^ int(round_key_x[col-1][0],16)
-                    # val2_int = int(key_expanded[round][1][col],16) ^ int(round_key_x[col-1][1],16)
-                    # val3_int = int(key_expanded[round][2][col],16) ^ int(round_key_x[col-1][2],16)
-                    # val4_int = int(key_expanded[round][3][col],16) ^ int(round_key_x[col-1][3],16)
                     val1_int = int(key_expanded[round][0][col],16) ^ int(round_key_x[0][col-1],16)
                     val2_int = int(key_expanded[round][1][col],16) ^ int(round_key_x[1][col-1],16)
                     val3_int = int(key_expanded[round][2][col],16) ^ int(round_key_x[2][col-1],16)
                     val4_int = int(key_expanded[round][3][col],16) ^ int(round_key_x[3][col-1],16)
-                    # round_key_x[col][0] = hex(val1_int)
-                    # round_key_x[col][1] = hex(val2_int)
-                    # round_key_x[col][2] = hex(val3_int)
-                    # round_key_x[col][3] = hex(val4_int)
+
                     round_key_x[0][col] = hex(val1_int)
                     round_key_x[1][col] = hex(val2_int)
                     round_key_x[2][col] = hex(val3_int)
                     round_key_x[3][col] = hex(val4_int)
             #Add new round key to list
             key_expanded.append(round_key_x)
-            #print(round_key_x)
-        #print(len(key_expanded))
         return key_expanded
     
     #Rotate a specific column up one from a 4x4 ndarray, used for the RotWord
@@ -259,18 +236,13 @@ class AES():
         file1 = open("decrypt.txt", "r")
         base64_string = bytes.fromhex(file1.read())#.decode("ascii")#.encode("utf-8")#base64.b64encode(bytes.fromhex(file1.read())).decode()
         file1.close()
-        #base64_string = base64_string.encode("utf-8")
         trim_amount = 0
         if input_filename[len(input_filename)-3:] == "ppm":
             trim_amount = 3
-        #loc = "temp/" + output_filename[:-4] + ".ppm"
-        #byte_string = base64.b64decode(base64_string)#.decode("ascii")
-        #print(byte_string)
         header_file = open("temp/header.txt", "r")
         header_string = header_file.read()
         header_file.close()
         #Write header file
-        #ppm_header_file = open(loc, "w")
         ppm_header_file = open(output_filename, "w")
         ppm_header_file.write(header_string)
         ppm_header_file.close()
@@ -282,14 +254,13 @@ class AES():
 
     def convert_base64_to_jpeg(self, input_filename, output_filename):
         file1 = open("decrypt.txt", "r")
-        base64_string = bytes.fromhex(file1.read())#.decode("ascii")#.encode("utf-8")#base64.b64encode(bytes.fromhex(file1.read())).decode()
+        base64_string = bytes.fromhex(file1.read())
         file1.close()
         trim_amount = 0
         if input_filename[len(input_filename)-3:] == "ppm":
             trim_amount = 3
         loc = os.getcwd() + "/temp/" + utils.find_file_name(output_filename)[:-4] + ".ppm"
-        #loc = "temp/" + output_filename[:-4] + ".ppm"
-        byte_string = base64.b64decode(base64_string)#.decode("ascii")
+        byte_string = base64.b64decode(base64_string)
 
         #You first need to create the decrypted ppm file,
         #Then convert the ppm back to jpeg
@@ -304,7 +275,7 @@ class AES():
         ppm_file = open(loc, "ab")
         ppm_file.write(byte_string)
         ppm_file.close()
-        #utils.show_image(loc)
+        utils.show_image(loc)
         utils.convert_ppm_to_jpg(loc, output_filename)
 
 
@@ -343,6 +314,7 @@ class AES():
         else:
             self.convert_blocks_to_output(message_blocks, output_filename)
         print("Encrypted output written to " + output_filename)
+        self.clear_temp_dir()
 
     def decyrpt_aes(self, input_filename, output_filename, key_phrase):
         self.key_phrase = key_phrase
@@ -353,7 +325,7 @@ class AES():
         if len(round_keys) != self.rounds + 1:
             return ValueError("Wrong amount of round keys")
         encrypted_blocks = self.convert_input_to_blocks(input_filename)
-        for i in tqdm(reversed(range(len(encrypted_blocks)))):
+        for i in reversed(tqdm(range(len(encrypted_blocks)))):
             encrypted_blocks[i] = self.add_rm_round_key(encrypted_blocks[i], round_keys[10])
             encrypted_blocks[i] = self.unshift_rows(encrypted_blocks[i])
             self.inverse_sub_bytes(encrypted_blocks[i], s_box_dict)
@@ -370,6 +342,13 @@ class AES():
             self.convert_base64_to_jpeg(input_filename, output_filename)
         else:
             self.convert_back_to_file("decrypt.txt", output_filename)
+        self.clear_temp_dir()
+
+    def clear_temp_dir(self):
+        mypath = os.getcwd()+"/temp"
+        for root, dirs, files in os.walk(mypath):
+            for file in files:
+                os.remove(os.path.join(root, file))
 
     def convert_input_to_blocks(self, filename):
         encrypted_blocks = []
@@ -445,7 +424,6 @@ class AES():
         elif len(self.message) * 8 >= self.block_size:
             #Pads the message if it is not in 128 bit multiples
             if (len(self.message) * 8) % self.block_size == 0:
-                print("FITS PERFECTLY NO PADDING")
                 blocks_total = int((len(self.message) * 8) / self.block_size)
                 for i in range(blocks_total):
                     block = hex_list[i*16:(i+1)*16]
@@ -459,14 +437,12 @@ class AES():
                 tail_block = hex_list[(i+1)*16:]
                 self.pad_hex(tail_block)
                 message_blocks.append(np.array(tail_block).reshape(4,4).swapaxes(0,1))
-                print("MUST PAD last block")
         
         return message_blocks
 
     def convert_key(self):
         hex_list = [hex(ord(c)) for c in list(self.key_phrase) if True]
         if len(self.key_phrase) * 8 < self.block_size:
-            #print(len(self.key_phrase))
             self.pad_hex(hex_list)
         elif len(self.key_phrase) * 8 > self.block_size:
             raise ValueError("Key too large for block size")
@@ -488,9 +464,7 @@ class AES():
 
         else:
             bits_left = self.block_size - len(hex_list) * 8#128 - 96
-        #print(blocks)
         bytes_left: int = int(bits_left / 8)
-        #print(bytes_left)
         #For the PKCS#7 Padding you add the bytes left as a hex value to all the empty spaces
         hex_to_append = hex(bytes_left)
         for i in range(bytes_left):
@@ -500,13 +474,9 @@ class AES():
         hex_len = hex_list[len(hex_list)-1]
         padding_len = int(hex_len, 16)
         rev_list = hex_list[::-1]
-        #rev_list.reverse()
         #Check to see if hex list is padded
         is_padded = True
-        print(rev_list)
         for i in range(3, padding_len*2, 2):
-            # print(rev_list[i-1], rev_list[i])
-            # print(rev_list[i-3], rev_list[i-2])
             if (rev_list[i-3], rev_list[i-2]) != (rev_list[i-1], rev_list[i]):
                 is_padded = False
                 break

@@ -52,7 +52,7 @@ def menu():
                 file_name = utils.find_file_name(input_filename)
                 output_filename = output_location + "/" + file_name[:-4] + "-encyrpted.ppm"
 
-                fp = open(output_filename, 'x')
+                fp = open(output_filename, 'w')
                 fp.close()
             else:
                 output_filename = select_data_file("Choose location to write encrypted file")
