@@ -214,7 +214,12 @@ class AES():
 
     #This function supports all AES bit configurations
     def shift_rows(self, shift_array: np.ndarray):
-        shift_array = shift_array.take((0,1,2,3,5,6,7,4,10,11,8,9,15,12,13,14)).reshape(4, 4)
+        return shift_array.take((0,1,2,3,5,6,7,4,10,11,8,9,15,12,13,14)).reshape(4, 4)
+        # shift_array_copy = shift_array.copy()
+        # shift_array_copy = shift_array_copy.take((0,1,2,3,5,6,7,4,10,11,8,9,15,12,13,14)).reshape(4, 4)
+        # shift_array[1] = np.roll(shift_array[1], -1)
+        # shift_array[2] = np.roll(shift_array[2], -2)
+        # shift_array[3] = np.roll(shift_array[3], -3)
 
     #This function supports all AES bit configurations
     def unshift_rows(self, shift_array: np.ndarray):
@@ -323,13 +328,13 @@ class AES():
             #Rounds 2-10
             for round in range(self.rounds - 1):
                 self.sub_bytes(message_blocks[b_index])
-                self.shift_rows(message_blocks[b_index])
+                message_blocks[b_index] = self.shift_rows(message_blocks[b_index])
                 self.mix_columns(message_blocks[b_index])
                 message_blocks[b_index] = self.add_rm_round_key(message_blocks[b_index], round_keys[round+1])
 
             #Round 11
             self.sub_bytes(message_blocks[b_index])
-            self.shift_rows(message_blocks[b_index])
+            message_blocks[b_index] = self.shift_rows(message_blocks[b_index])
             message_blocks[b_index] = self.add_rm_round_key(message_blocks[b_index], round_keys[10])
         if input_filename[len(input_filename)-3:] == "jpg" or input_filename[len(input_filename)-4:] == "jpeg":
             self.convert_blocks_to_output(message_blocks, "decrypt.txt")
