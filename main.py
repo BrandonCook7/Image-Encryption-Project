@@ -82,7 +82,7 @@ def menu():
                 else:
                     output_filename = output_location + "/" + file_name[:-4] + "-decyrpted.jpg"
 
-                fp = open(output_filename, 'x')
+                fp = open(output_filename, 'w')
                 fp.close()
             else:
                 output_filename = select_data_file("Choose location to write decrypted file")

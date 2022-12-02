@@ -214,9 +214,7 @@ class AES():
 
     #This function supports all AES bit configurations
     def shift_rows(self, shift_array: np.ndarray):
-        shift_array[1] = np.roll(shift_array[1], -1)
-        shift_array[2] = np.roll(shift_array[2], -2)
-        shift_array[3] = np.roll(shift_array[3], -3)
+        shift_array = shift_array.take((0,1,2,3,5,6,7,4,10,11,8,9,15,12,13,14)).reshape(4, 4)
 
     #This function supports all AES bit configurations
     def unshift_rows(self, shift_array: np.ndarray):
