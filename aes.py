@@ -132,17 +132,17 @@ class AES():
             temp_store = []
             for col in range(4):
                 if mix_columns_matrix[row][col] == 1:
-                    mul_val = int(column[col],16)
+                    mul_val = column[col]
                 elif mix_columns_matrix[row][col] == 2:
-                    mul_val = utils.multiply_by_2(int(column[col],16))
+                    mul_val = utils.multiply_by_2(column[col])
                 elif mix_columns_matrix[row][col] == 3:
-                    mul_val = utils.multiply_by_3(int(column[col],16))
+                    mul_val = utils.multiply_by_3(column[col])
                 else:
                     raise RuntimeError("Could not find correct matrix value")
                 temp_store.append(mul_val)
             #After loop XOR all values together
             total = temp_store[0] ^ temp_store[1] ^ temp_store[2] ^ temp_store[3]
-            mixed_column[row] = (hex(total))
+            mixed_column[row] = total
         return mixed_column
 
     def inverse_mix_columns(self, mixed_array: np.ndarray):
@@ -179,7 +179,7 @@ class AES():
 
     def sub_bytes(self, sub_array: np.ndarray):
         for pos, x in np.ndenumerate(sub_array):
-            sub_array[pos[0]][pos[1]] = utils.lookup_table(x, utils.s_box)
+            sub_array[pos[0]][pos[1]] = utils.lookup_table(hex(x), utils.s_box)
 
     def inverse_sub_bytes(self, sub_array: np.ndarray, s_box_dict: dict):
         for pos, x in np.ndenumerate(sub_array):
@@ -190,18 +190,10 @@ class AES():
     #This function supports all AES bit configurations
     def shift_rows(self, shift_array: np.ndarray):
         return shift_array.take((0,1,2,3,5,6,7,4,10,11,8,9,15,12,13,14)).reshape(4, 4)
-        # shift_array_copy = shift_array.copy()
-        # shift_array_copy = shift_array_copy.take((0,1,2,3,5,6,7,4,10,11,8,9,15,12,13,14)).reshape(4, 4)
-        # shift_array[1] = np.roll(shift_array[1], -1)
-        # shift_array[2] = np.roll(shift_array[2], -2)
-        # shift_array[3] = np.roll(shift_array[3], -3)
 
     #This function supports all AES bit configurations
     def unshift_rows(self, shift_array: np.ndarray):
         return shift_array.take((0,1,2,3,7,4,5,6,10,11,8,9,13,14,15,12)).reshape(4, 4)
-        # shift_array[1] = np.roll(shift_array[1], 1)
-        # shift_array[2] = np.roll(shift_array[2], 2)
-        # shift_array[3] = np.roll(shift_array[3], 3)
 
 
     #This function adds the round key or removes the round key depending
@@ -392,7 +384,7 @@ class AES():
             temp_str = ""
             for i in range(4):
                 for j in range(4):
-                    temp_str += (f"0x{(int(block[j][i],16)):02x}")[2:]#block[j][i]#str(int(block[j][i],16))
+                    temp_str += (f"0x{(block[j][i]):02x}")[2:]#(f"0x{(int(block[j][i],16)):02x}")[2:]
             file.write(temp_str)
         file.close()
     

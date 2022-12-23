@@ -2,8 +2,8 @@ from aes import *
 from utils import *
 
 def main():
-    test_encyrpt()
-    #menu()
+    #test_encyrpt()
+    menu()
 
 def test_encyrpt():
     aes = AES()
