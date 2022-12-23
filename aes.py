@@ -67,9 +67,9 @@ class AES():
         for i in range(10):
             for j in range(4):
                 if j == 0:
-                    rcon_table[0][i] = hex(rcon_lookup[i])#f"0x{(rcon_lookup[i]):02x}"
+                    rcon_table[0][i] = rcon_lookup[i]#f"0x{(rcon_lookup[i]):02x}"
                 else:
-                    rcon_table[j][i] = hex(0)
+                    rcon_table[j][i] = 0
         return rcon_table
 
     #The key scheduler happens here
@@ -81,34 +81,31 @@ class AES():
         rcon_table = self.create_rcon_table()
 
         for round in range(self.rounds):
-            round_key_x = np.empty(shape=(4,4), dtype='<U4', order='C')
+            round_key_x = np.empty(shape=(4,4), dtype='i', order='C')
             for col in range(4):
                 if col == 0:
                     #Creates rot word as 1d array
                     rot_word = self.rotate_column_up(key_expanded[round], 3)
                     #Substitute Bytes
                     for index in np.ndindex(rot_word.shape):
-                        rot_word[index] = utils.lookup_table(rot_word[index], utils.s_box)#[2:]#Trim to ignore 0x
+                        #Must pass as a hex because lookup_table splices the hex to find it's value
+                        rot_word[index] = utils.lookup_table(hex(rot_word[index]), utils.s_box)
 
-                    val1_int = int(key_expanded[round][0][col],16) ^ int(rot_word[0],16) ^ int(rcon_table[0][round],16)
-                    val2_int = int(key_expanded[round][1][col],16) ^ int(rot_word[1],16) ^ int(rcon_table[1][round],16)
-                    val3_int = int(key_expanded[round][2][col],16) ^ int(rot_word[2],16) ^ int(rcon_table[2][round],16)
-                    val4_int = int(key_expanded[round][3][col],16) ^ int(rot_word[3],16) ^ int(rcon_table[3][round],16)
-                    #After XOR operation stores keys back in hex values
-                    round_key_x[0][col] = hex(val1_int)
-                    round_key_x[1][col] = hex(val2_int)
-                    round_key_x[2][col] = hex(val3_int)
-                    round_key_x[3][col] = hex(val4_int)
+                    round_key_x[0][col] = key_expanded[round][0][col] ^ rot_word[0] ^ rcon_table[0][round]
+                    round_key_x[1][col] = key_expanded[round][1][col] ^ rot_word[1] ^ rcon_table[1][round]
+                    round_key_x[2][col] = key_expanded[round][2][col] ^ rot_word[2] ^ rcon_table[2][round]
+                    round_key_x[3][col] = key_expanded[round][3][col] ^ rot_word[3] ^ rcon_table[3][round]
+
                 else:
-                    val1_int = int(key_expanded[round][0][col],16) ^ int(round_key_x[0][col-1],16)
-                    val2_int = int(key_expanded[round][1][col],16) ^ int(round_key_x[1][col-1],16)
-                    val3_int = int(key_expanded[round][2][col],16) ^ int(round_key_x[2][col-1],16)
-                    val4_int = int(key_expanded[round][3][col],16) ^ int(round_key_x[3][col-1],16)
-
-                    round_key_x[0][col] = hex(val1_int)
-                    round_key_x[1][col] = hex(val2_int)
-                    round_key_x[2][col] = hex(val3_int)
-                    round_key_x[3][col] = hex(val4_int)
+                    val1_int = key_expanded[round][0][col] ^ round_key_x[0][col-1]
+                    val2_int = key_expanded[round][1][col] ^ round_key_x[1][col-1]
+                    val3_int = key_expanded[round][2][col] ^ round_key_x[2][col-1]
+                    val4_int = key_expanded[round][3][col] ^ round_key_x[3][col-1]
+                    #Wait to set the round_key_values since they would else get mo
+                    round_key_x[0][col] = val1_int
+                    round_key_x[1][col] = val2_int
+                    round_key_x[2][col] = val3_int
+                    round_key_x[3][col] = val4_int
             #Add new round key to list
             key_expanded.append(round_key_x)
         return key_expanded
@@ -452,7 +449,8 @@ class AES():
             self.pad_hex(hex_list)
         elif len(self.key_phrase) * 8 > self.block_size:
             raise ValueError("Key too large for block size")
-
+        hex_list = [int(c, 16) for c in list(hex_list) if True]
+        #Convert values from hex to int
         key_array = np.array(hex_list).reshape(4,4).swapaxes(0,1)
         return key_array
     #Uses PKCS#7 Padding, modifies hex_list by reference

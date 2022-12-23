@@ -140,7 +140,7 @@ def lookup_table(_hex, table):
     row = x_coord * 16
     #Don't use hex function since it will print 0x7 instead of 0x07
     #return (f"0x{(s_box[row + y_coord]):02x}")
-    return hex(table[row+y_coord])
+    return table[row+y_coord]
 
 def select_data_all(title_msg, initial_file = None):
     #Used to hide the default tkinter window

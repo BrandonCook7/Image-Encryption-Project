@@ -2,7 +2,15 @@ from aes import *
 from utils import *
 
 def main():
-    menu()
+    test_encyrpt()
+    #menu()
+
+def test_encyrpt():
+    aes = AES()
+    input_filename = "~/Downloads/random_image.jpg"
+    output_filename = "~/Downloads/random_image_encyrpt.ppm"
+    password = "test1234"
+    aes.encrypt_aes(input_filename, output_filename, password)
 
 def menu():
     print("AES Image Encryptor")
