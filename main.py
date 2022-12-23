@@ -7,8 +7,8 @@ def main():
 
 def test_encyrpt():
     aes = AES()
-    input_filename = "~/Downloads/random_image.jpg"
-    output_filename = "~/Downloads/random_image_encyrpt.ppm"
+    input_filename = "/Users/brandoncook/Downloads/random_image.jpg"
+    output_filename = "/Users/brandoncook/Downloads/random_image_encyrpt.ppm"
     password = "test1234"
     aes.encrypt_aes(input_filename, output_filename, password)
 

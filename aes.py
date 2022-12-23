@@ -207,10 +207,10 @@ class AES():
     #This function adds the round key or removes the round key depending
     #on if the array is being unencrypted or being encrypted
     def add_rm_round_key(self, array, round_key):
-        return_array = np.empty(shape=(4,4), dtype='<U4')
+        return_array = np.empty(shape=(4,4), dtype='i')
         for i in range(4):
             for j in range(4):
-                return_array[i][j] = hex(int(array[i][j],16) ^ int(round_key[i][j], 16))
+                return_array[i][j] = array[i][j] ^ round_key[i][j]
         return return_array
     
     def convert_jpeg_to_base64(self, filename):
@@ -423,6 +423,8 @@ class AES():
         hex_list = [hex(ord(c)) for c in list(self.message) if True]
         if len(self.message) * 8 < self.block_size:
             self.pad_hex(hex_list)
+            #Convert it back to integers
+            hex_list  = [int(c, 16) for c in hex_list if True]
             message_blocks.append(np.array(hex_list).reshape(4,4).swapaxes(0,1))
         elif len(self.message) * 8 >= self.block_size:
             #Pads the message if it is not in 128 bit multiples
@@ -430,6 +432,8 @@ class AES():
                 blocks_total = int((len(self.message) * 8) / self.block_size)
                 for i in range(blocks_total):
                     block = hex_list[i*16:(i+1)*16]
+                    #Convert it back to integers
+                    block  = [int(c, 16) for c in block if True]
                     message_blocks.append(np.array(block).reshape(4,4).swapaxes(0,1))
             else:
                 filled_blocks_total = math.floor((len(self.message) * 8) / self.block_size)
@@ -439,6 +443,8 @@ class AES():
                     message_blocks.append(np.array(block).reshape(4,4).swapaxes(0,1))
                 tail_block = hex_list[(i+1)*16:]
                 self.pad_hex(tail_block)
+                #Convert it back to integers
+                tail_block  = [int(c, 16) for c in tail_block if True]
                 message_blocks.append(np.array(tail_block).reshape(4,4).swapaxes(0,1))
         
         return message_blocks
