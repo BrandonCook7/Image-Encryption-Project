@@ -300,19 +300,19 @@ class AES():
 
             #Rounds 2-10
             for round in range(self.rounds - 1):
-                #start = time.process_time()
+                start = time.process_time()
                 self.sub_bytes(message_blocks[b_index])
-                #print("Sub Bytes: " + str(time.process_time() - start))
-                #start = time.process_time()
+                print("Sub Bytes: " + str(time.process_time() - start))
+                start = time.process_time()
                 message_blocks[b_index] = self.shift_rows(message_blocks[b_index])
-                #print("Shift Rows: " + str(time.process_time() - start))
-                #start = time.process_time()
+                print("Shift Rows: " + str(time.process_time() - start))
+                start = time.process_time()
                 self.mix_columns(message_blocks[b_index])
-                #print("Mix Columns: " + str(time.process_time() - start))
-                #start = time.process_time()
+                print("Mix Columns: " + str(time.process_time() - start))
+                start = time.process_time()
                 message_blocks[b_index] = self.add_rm_round_key(message_blocks[b_index], round_keys[round+1])
-                # print("Add Round Key: " + str(time.process_time() - start))
-                # print("temp")
+                print("Add Round Key: " + str(time.process_time() - start))
+                print("temp")
 
             #Round 11
             self.sub_bytes(message_blocks[b_index])
