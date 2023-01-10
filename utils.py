@@ -124,16 +124,16 @@ def multiply_by_3(v):
 
 
 def lookup_table(_hex, table):
-    if _hex[1] == 'x':
-        if len(_hex) == 3:
-            x_axis = '0'
-            y_axis = _hex[2]
-        else:
-            x_axis = _hex[2]
-            y_axis = _hex[3]
+    # if _hex[1] == 'x':
+    if len(_hex) == 3:
+        x_axis = '0'
+        y_axis = _hex[2]
     else:
-        x_axis = _hex[0]
-        y_axis = _hex[1]
+        x_axis = _hex[2]
+        y_axis = _hex[3]
+    # else:
+    #     x_axis = _hex[0]
+    #     y_axis = _hex[1]
     #Converts hexadecimal values to integers
     x_coord = int(x_axis, 16)
     y_coord = int(y_axis, 16)

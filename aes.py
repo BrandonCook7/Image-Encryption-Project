@@ -40,6 +40,20 @@ class AES():
                 row = y_coord * 16
                 table_dict[hex(utils.s_box[row+x_coord])] = (hex(x_coord), hex(y_coord))
         return table_dict
+    def create_s_box_dict(self):
+        table_dict = {}
+        for y_coord in range(16):
+            for x_coord in range(16):
+                row = y_coord * 16
+                x_coord_hex = hex(x_coord)[2]
+                y_coord_hex = ''
+                if len(hex(y_coord)) == 3:
+                    y_coord_hex = hex(y_coord)[2]
+                else:
+                    y_coord_hex = hex(y_coord)[3]
+                table_dict[y_coord_hex + x_coord_hex] = hex(utils.s_box[row+x_coord])
+                #table_dict[hex(utils.s_box[row+x_coord])] = (hex(x_coord), hex(y_coord))
+        return table_dict
                 
 
     def inverse_sub_from_s_box(self, _hex):
@@ -180,14 +194,22 @@ class AES():
             mixed_column[row] = (hex(total))
         return mixed_column
 
-    def sub_bytes(self, sub_array: np.ndarray):
+    # def sub_bytes(self, sub_array: np.ndarray):
+    #     for pos, x in np.ndenumerate(sub_array):
+    #         sub_array[pos[0]][pos[1]] = utils.lookup_table(x, utils.s_box)
+    def sub_bytes(self, sub_array: np.ndarray, s_box_dict: dict):
         for pos, x in np.ndenumerate(sub_array):
-            sub_array[pos[0]][pos[1]] = utils.lookup_table(x, utils.s_box)
+            lookup = x
+            if len(lookup) == 3:
+                lookup = '0' + lookup[2]
+            else:
+                lookup = lookup[2:]
+            sub_array[pos[0]][pos[1]] = s_box_dict[lookup]
 
-    def inverse_sub_bytes(self, sub_array: np.ndarray, s_box_dict: dict):
+    def inverse_sub_bytes(self, sub_array: np.ndarray, s_box_inverse_dict: dict):
         for pos, x in np.ndenumerate(sub_array):
             #return hex(int(y_hex[2] + x_hex[2],16))
-            x_hex, y_hex = s_box_dict[x]
+            x_hex, y_hex = s_box_inverse_dict[x]
             sub_array[pos[0]][pos[1]] = hex(int(y_hex[2] + x_hex[2],16))
 
     #This function supports all AES bit configurations
@@ -285,6 +307,7 @@ class AES():
         self.key_phrase = key_phrase
         key = self.convert_key()
         round_keys = self.create_round_keys(key)
+        s_box_dict = self.create_s_box_dict()
         if len(round_keys) != self.rounds + 1:
             return ValueError("Wrong amount of round keys")
         if self.message == "":
@@ -300,22 +323,23 @@ class AES():
 
             #Rounds 2-10
             for round in range(self.rounds - 1):
-                #start = time.process_time()
-                self.sub_bytes(message_blocks[b_index])
-                #print("Sub Bytes: " + str(time.process_time() - start))
-                #start = time.process_time()
+                # start = time.process_time()
+                self.sub_bytes(message_blocks[b_index], s_box_dict)
+                # print("Sub Bytes: " + str(time.process_time() - start))
+                # start = time.process_time()
                 message_blocks[b_index] = self.shift_rows(message_blocks[b_index])
-                #print("Shift Rows: " + str(time.process_time() - start))
-                #start = time.process_time()
+                # print("Shift Rows: " + str(time.process_time() - start))
+                # start = time.process_time()
                 self.mix_columns(message_blocks[b_index])
-                #print("Mix Columns: " + str(time.process_time() - start))
-                #start = time.process_time()
+                # print("Mix Columns: " + str(time.process_time() - start))
+                # start = time.process_time()
                 message_blocks[b_index] = self.add_rm_round_key(message_blocks[b_index], round_keys[round+1])
-                #print("Add Round Key: " + str(time.process_time() - start))
-                #print("temp")
+                # print("Add Round Key: " + str(time.process_time() - start))
+                # print("temp")
 
             #Round 11
-            self.sub_bytes(message_blocks[b_index])
+            self.sub_bytes(message_blocks[b_index], s_box_dict)
+            #self.sub_bytes(message_blocks[b_index])
             message_blocks[b_index] = self.shift_rows(message_blocks[b_index])
             message_blocks[b_index] = self.add_rm_round_key(message_blocks[b_index], round_keys[10])
         if input_filename[len(input_filename)-3:] == "jpg" or input_filename[len(input_filename)-4:] == "jpeg":
@@ -331,7 +355,7 @@ class AES():
         key = self.convert_key()
         round_keys = self.create_round_keys(key)
         #Used for inverse s box
-        s_box_dict = self.create_inverse_s_box_dict()
+        s_box_inverse_dict = self.create_inverse_s_box_dict()
         if len(round_keys) != self.rounds + 1:
             return ValueError("Wrong amount of round keys")
         encrypted_blocks = self.convert_input_to_blocks(input_filename)
@@ -339,12 +363,12 @@ class AES():
         for i in reversed(tqdm(range(len(encrypted_blocks)))):
             encrypted_blocks[i] = self.add_rm_round_key(encrypted_blocks[i], round_keys[10])
             encrypted_blocks[i] = self.unshift_rows(encrypted_blocks[i])
-            self.inverse_sub_bytes(encrypted_blocks[i], s_box_dict)
+            self.inverse_sub_bytes(encrypted_blocks[i], s_box_inverse_dict)
             for round in reversed(range(self.rounds - 1)):
                 encrypted_blocks[i] = self.add_rm_round_key(encrypted_blocks[i], round_keys[round+1])
                 self.inverse_mix_columns(encrypted_blocks[i])
                 encrypted_blocks[i] = self.unshift_rows(encrypted_blocks[i])
-                self.inverse_sub_bytes(encrypted_blocks[i], s_box_dict)
+                self.inverse_sub_bytes(encrypted_blocks[i], s_box_inverse_dict)
             encrypted_blocks[i] = self.add_rm_round_key(encrypted_blocks[i], round_keys[0])
 
         self.convert_blocks_to_output(encrypted_blocks, "decrypt.txt")
